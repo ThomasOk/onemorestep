@@ -1,0 +1,1242 @@
+This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching these patterns are excluded: android, node_modules, .expo, .git
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+androidManifestPlugin.js
+app-env.d.ts
+app.json
+App.tsx
+app/(tabs)/_layout.tsx
+app/(tabs)/home.tsx
+app/(tabs)/leaderboard.tsx
+app/index.tsx
+babel.config.js
+cesconfig.json
+components/Container.tsx
+components/EditScreenInfo.tsx
+components/leaderboard-item.tsx
+components/record-card.tsx
+components/ScreenContent.tsx
+components/steps-card.tsx
+eas.json
+eslint.config.js
+global.css
+hooks/use-leaderboard.ts
+hooks/useHealthData.ts
+metro.config.js
+nativewind-env.d.ts
+package.json
+prettier.config.js
+services/leaderboard.ts
+tailwind.config.js
+tsconfig.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="androidManifestPlugin.js">
+const { withAndroidManifest } = require('@expo/config-plugins');
+
+module.exports = function androidManifestPlugin(config) {
+  return withAndroidManifest(config, async (config) => {
+    let androidManifest = config.modResults.manifest;
+
+    androidManifest.application[0].activity[0]['intent-filter'].push({
+      action: [
+        {
+          $: {
+            'android:name': 'androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE',
+          },
+        },
+      ],
+    });
+
+    return config;
+  });
+};
+</file>
+
+<file path="app/(tabs)/_layout.tsx">
+import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+
+export default function TabsLayout() {
+  return (
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: '#FFFFFF',
+        tabBarInactiveTintColor: '#888888',
+        tabBarStyle: {
+          backgroundColor: '#111111',
+          borderTopColor: '#333333',
+        },
+        headerStyle: {
+          backgroundColor: '#000000',
+        },
+        headerTintColor: '#FFFFFF',
+      }}>
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: 'Mes Pas',
+          tabBarIcon: ({ color, size }) => <Ionicons name="footsteps" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="leaderboard"
+        options={{
+          title: 'Classement',
+          tabBarIcon: ({ color, size }) => <Ionicons name="trophy" size={size} color={color} />,
+        }}
+      />
+    </Tabs>
+  );
+}
+</file>
+
+<file path="app/(tabs)/home.tsx">
+import { View, Text } from 'react-native';
+import { useEffect } from 'react';
+import { useFonts, DotGothic16_400Regular } from '@expo-google-fonts/dotgothic16';
+import useHealthData from '../../hooks/useHealthData';
+import StepsCard from '../../components/steps-card';
+import RecordCard from '../../components/record-card';
+
+export default function HomeScreen() {
+  const [fontsLoaded] = useFonts({
+    DotGothic16_400Regular,
+  });
+
+  const { steps, yesterdaySteps, isLoading } = useHealthData(new Date());
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
+  return (
+    <View className="flex-1 items-center justify-center bg-black">
+      <StepsCard steps={steps} yesterdaySteps={yesterdaySteps} isLoading={isLoading} />
+
+      {/* {recordSteps > 0 && (
+        <RecordCard recordSteps={recordSteps} recordDate={recordDate} currentSteps={steps} />
+      )} */}
+    </View>
+  );
+}
+</file>
+
+<file path="app/(tabs)/leaderboard.tsx">
+import { View, Text, FlatList, ActivityIndicator } from 'react-native';
+import { useFonts, DotGothic16_400Regular } from '@expo-google-fonts/dotgothic16';
+import useLeaderboard from '../../hooks/use-leaderboard';
+import LeaderboardItem from '../../components/leaderboard-item';
+
+export default function LeaderboardScreen() {
+  const [fontsLoaded] = useFonts({
+    DotGothic16_400Regular,
+  });
+
+  const { leaderboard, isLoading, currentUserRank } = useLeaderboard();
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
+  return (
+    <View className="flex-1 bg-black">
+      <Text className="my-4 text-center font-dotgothic text-2xl text-white">Classement</Text>
+
+      {isLoading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
+      ) : (
+        <FlatList
+          data={leaderboard}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item, index }) => (
+            <LeaderboardItem
+              rank={index + 1}
+              user={item.name}
+              steps={item.steps}
+              isCurrentUser={item.id === currentUserRank?.id}
+            />
+          )}
+          ListEmptyComponent={
+            <Text className="p-4 text-center font-dotgothic text-white">
+              Aucune donnée de classement disponible
+            </Text>
+          }
+        />
+      )}
+    </View>
+  );
+}
+</file>
+
+<file path="app/index.tsx">
+import { Redirect } from 'expo-router';
+
+export default function Index() {
+  // Rediriger vers l'onglet principal
+  return <Redirect href="/home" />;
+}
+</file>
+
+<file path="components/leaderboard-item.tsx">
+import { View, Text } from 'react-native';
+
+interface LeaderboardItemProps {
+  rank: number;
+  user: string;
+  steps: number;
+  isCurrentUser: boolean;
+}
+
+export default function LeaderboardItem({
+  rank,
+  user,
+  steps,
+  isCurrentUser,
+}: LeaderboardItemProps) {
+  return (
+    <View
+      className={`mx-2 my-1 flex-row items-center justify-between rounded-lg p-4 ${isCurrentUser ? 'bg-blue-900' : 'bg-gray-800'}`}>
+      <View className="flex-row items-center">
+        <View
+          className={`h-8 w-8 items-center justify-center rounded-full ${getRankBackgroundColor(rank)}`}>
+          <Text className="font-dotgothic font-bold text-white">{rank}</Text>
+        </View>
+
+        <Text className="ml-3 font-dotgothic text-lg text-white">
+          {user} {isCurrentUser && '👤'}
+        </Text>
+      </View>
+
+      <Text className="font-dotgothic text-xl text-white">{steps}</Text>
+    </View>
+  );
+}
+
+function getRankBackgroundColor(rank: number): string {
+  switch (rank) {
+    case 1:
+      return 'bg-yellow-500'; // Or
+    case 2:
+      return 'bg-gray-400'; // Argent
+    case 3:
+      return 'bg-yellow-700'; // Bronze
+    default:
+      return 'bg-gray-700'; // Autres rangs
+  }
+}
+</file>
+
+<file path="components/record-card.tsx">
+import { View, Text } from 'react-native';
+
+interface RecordCardProps {
+  recordSteps: number;
+  recordDate: string | null;
+  currentSteps: number;
+}
+
+export default function RecordCard({ recordSteps, recordDate, currentSteps }: RecordCardProps) {
+  const recordProgress = Math.round((currentSteps / recordSteps) * 100);
+
+  return (
+    <View className="mb-4 w-11/12 items-center rounded-xl bg-gray-800 p-4">
+      <Text className="font-dotgothic text-lg text-yellow-400">Record Personnel</Text>
+
+      <Text className="font-dotgothic text-3xl text-yellow-400">{recordSteps}</Text>
+
+      {recordDate && (
+        <Text className="mt-1 font-dotgothic text-xs text-gray-400">{recordDate}</Text>
+      )}
+
+      <View className="mt-3 h-2 w-full rounded-full bg-gray-700">
+        <View
+          className="h-2 rounded-full bg-yellow-400"
+          style={{ width: `${Math.min(recordProgress, 100)}%` }}
+        />
+      </View>
+
+      <Text className="mt-1 font-dotgothic text-xs text-gray-400">
+        {recordProgress}% de votre record
+      </Text>
+    </View>
+  );
+}
+</file>
+
+<file path="components/steps-card.tsx">
+import { View, Text, ActivityIndicator } from 'react-native';
+
+interface StepsCardProps {
+  steps: number;
+  yesterdaySteps: number;
+  isLoading: boolean;
+}
+
+export default function StepsCard({ steps, yesterdaySteps, isLoading }: StepsCardProps) {
+  const calculateChange = (): { percent: number; isIncrease: boolean } => {
+    if (yesterdaySteps === 0) return { percent: 0, isIncrease: true };
+
+    const change = steps - yesterdaySteps;
+    const percent = Math.abs(Math.round((change / yesterdaySteps) * 100));
+
+    return {
+      percent: percent,
+      isIncrease: change >= 0,
+    };
+  };
+
+  const { percent, isIncrease } = calculateChange();
+
+  return (
+    <View className="mb-4 w-11/12 rounded-xl bg-gray-800 p-5">
+      <Text className="mb-2 text-center font-dotgothic text-2xl text-white">Today Steps</Text>
+
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#FFFFFF" />
+      ) : (
+        <View className="items-center">
+          <Text className="font-dotgothic text-6xl text-white">{steps}</Text>
+
+          {yesterdaySteps > 0 && (
+            <View className="mt-4 items-center">
+              <Text className="font-dotgothic text-sm text-gray-400">Hier: {yesterdaySteps}</Text>
+
+              {percent > 0 && (
+                <Text
+                  className={`font-dotgothic text-lg ${isIncrease ? 'text-green-500' : 'text-red-500'}`}>
+                  {isIncrease ? '↑' : '↓'} {percent}%
+                </Text>
+              )}
+            </View>
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
+</file>
+
+<file path="eas.json">
+{
+  "cli": {
+    "version": ">= 16.4.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
+</file>
+
+<file path="hooks/use-leaderboard.ts">
+import { useState, useEffect } from 'react';
+import { getLeaderboard, getCurrentUserRank } from '../services/leaderboard';
+
+interface LeaderboardUser {
+  id: string;
+  name: string;
+  steps: number;
+}
+
+export default function useLeaderboard() {
+  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
+  const [currentUserRank, setCurrentUserRank] = useState<LeaderboardUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      setIsLoading(true);
+      try {
+        // Dans un vrai scénario, ces données viendraient d'une API
+        // Pour l'instant, on utilise des données fictives
+        const leaderboardData = await getLeaderboard();
+        const userRank = await getCurrentUserRank();
+
+        setLeaderboard(leaderboardData);
+        setCurrentUserRank(userRank);
+      } catch (error) {
+        console.error('Erreur lors de la récupération du classement:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+  }, []);
+
+  return { leaderboard, isLoading, currentUserRank };
+}
+</file>
+
+<file path="hooks/useHealthData.ts">
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { initialize, requestPermission, readRecords } from 'react-native-health-connect';
+import { TimeRangeFilter } from 'react-native-health-connect/lib/typescript/types/base.types';
+import { Platform, AppState, AppStateStatus } from 'react-native';
+
+// Interface pour le regroupement par source
+interface StepsBySource {
+  [key: string]: number;
+}
+
+// Noms conviviaux pour les sources
+const sourceDisplayNames: Record<string, string> = {
+  'com.google.android.apps.fitness': 'Google Fit',
+  'nl.appyhapps.healthsync': 'Health Sync',
+  'com.samsung.health.service': 'Samsung Health',
+  // Ajoutez d'autres sources selon vos besoins
+};
+
+const useHealthData = (selectedDate: Date = new Date()) => {
+  const [steps, setSteps] = useState(0);
+  const [yesterdaySteps, setYesterdaySteps] = useState(0);
+  const [stepsBySource, setStepsBySource] = useState<StepsBySource>({});
+  const [selectedSource, setSelectedSource] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Utiliser une référence pour suivre si les données ont déjà été chargées
+  // Cela aide à éviter les rechargements multiples lors des rendus
+  const initialLoadDone = useRef(false);
+
+  // Référence pour stocker l'ID de l'intervalle
+  const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fonction pour calculer le nombre total de pas à partir d'une réponse Health Connect
+  const calculateTotalSteps = (
+    response: any
+  ): { maxSteps: number; maxSource: string; stepsBySource: StepsBySource } => {
+    if (!response || !response.records || response.records.length === 0) {
+      return { maxSteps: 0, maxSource: '', stepsBySource: {} };
+    }
+
+    // Grouper par source
+    const sourcesMap: StepsBySource = {};
+    response.records.forEach((record: any) => {
+      const source = record.metadata?.dataOrigin || 'inconnu';
+      if (!sourcesMap[source]) {
+        sourcesMap[source] = 0;
+      }
+      sourcesMap[source] += record.count;
+    });
+
+    // Trouver la source avec le plus grand nombre de pas
+    let maxSteps = 0;
+    let maxSource = '';
+
+    Object.entries(sourcesMap).forEach(([source, count]) => {
+      if (count > maxSteps) {
+        maxSteps = count;
+        maxSource = source;
+      }
+    });
+
+    return { maxSteps, maxSource, stepsBySource: sourcesMap };
+  };
+
+  // Fonction pour obtenir les pas pour une date spécifique
+  const getStepsForDate = async (date: Date) => {
+    // Créer la plage de temps pour la date (de minuit à minuit)
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Filtre de temps pour la journée
+    const timeRangeFilter: TimeRangeFilter = {
+      operator: 'between',
+      startTime: startOfDay.toISOString(),
+      endTime: endOfDay.toISOString(),
+    };
+
+    // Lecture des enregistrements de pas
+    try {
+      const stepsResponse = await readRecords('Steps', { timeRangeFilter });
+      return stepsResponse;
+    } catch (error) {
+      console.error(`Erreur lors de la récupération des pas pour ${date.toDateString()}:`, error);
+      return null;
+    }
+  };
+
+  // Fonction pour charger les données de santé
+  const loadHealthData = useCallback(async (date: Date) => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    setIsLoading(true);
+    console.log('Chargement des données de santé pour', date.toDateString());
+
+    try {
+      // Initialisation du client Health Connect
+      console.log('Initialisation de Health Connect...');
+      const isInitialized = await initialize();
+      if (!isInitialized) {
+        console.log("Échec de l'initialisation de Health Connect");
+        setIsLoading(false);
+        return;
+      }
+
+      // Demande permission pour les pas
+      console.log('Demande de permission pour les pas...');
+      const grantedPermissions = await requestPermission([
+        { accessType: 'read', recordType: 'Steps' },
+      ]);
+
+      // Vérifie si la permission pour les pas a été accordée
+      const hasStepsPermission = grantedPermissions.some((perm) => perm.recordType === 'Steps');
+
+      console.log('Permission pour les pas accordée:', hasStepsPermission);
+
+      if (!hasStepsPermission) {
+        console.log('Permission refusée pour les pas');
+        setIsLoading(false);
+        return;
+      }
+
+      // 1. Récupérer les pas pour la date sélectionnée
+      console.log('Récupération des pas pour', date.toDateString());
+      const todayResponse = await getStepsForDate(date);
+      const { maxSteps, maxSource, stepsBySource: sourcesMap } = calculateTotalSteps(todayResponse);
+      console.log('Pas trouvés:', maxSteps);
+
+      // 2. Récupérer les pas pour la veille
+      const yesterday = new Date(date);
+      yesterday.setDate(yesterday.getDate() - 1);
+      console.log('Récupération des pas pour', yesterday.toDateString());
+      const yesterdayResponse = await getStepsForDate(yesterday);
+      const { maxSteps: yesterdayMaxSteps } = calculateTotalSteps(yesterdayResponse);
+      console.log("Pas d'hier trouvés:", yesterdayMaxSteps);
+
+      // Mettre à jour l'état
+      setSteps(maxSteps);
+      setYesterdaySteps(yesterdayMaxSteps);
+      setStepsBySource(sourcesMap);
+      setSelectedSource(maxSource);
+
+      // Enregistrer l'heure de la dernière mise à jour
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('Erreur lors du chargement des données:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []); // Aucune dépendance pour éviter les cycles
+
+  // Fonction pour vérifier si une date est aujourd'hui
+  const isToday = useCallback((date: Date): boolean => {
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  }, []);
+
+  // Chargement initial uniquement
+  useEffect(() => {
+    // Ne charger les données qu'une seule fois au montage initial
+    if (!initialLoadDone.current) {
+      console.log('Premier chargement des données');
+      loadHealthData(selectedDate);
+      initialLoadDone.current = true;
+    } else if (isToday(selectedDate)) {
+      // Recharger si la date est aujourd'hui (pour les actualisations)
+      console.log("Rechargement des données pour aujourd'hui");
+      loadHealthData(selectedDate);
+    }
+  }, [selectedDate, loadHealthData, isToday]);
+
+  // Effet pour l'actualisation périodique - uniquement pour aujourd'hui
+  useEffect(() => {
+    // Nettoyer l'intervalle précédent s'il existe
+    if (intervalIdRef.current) {
+      clearInterval(intervalIdRef.current);
+      intervalIdRef.current = null;
+    }
+
+    // Ne configurer l'intervalle que si la date sélectionnée est aujourd'hui
+    if (isToday(selectedDate)) {
+      console.log("Mise en place de l'actualisation périodique des pas");
+
+      // Actualiser les données toutes les 60 secondes
+      intervalIdRef.current = setInterval(() => {
+        console.log('Actualisation automatique des données de pas...');
+        loadHealthData(selectedDate);
+      }, 60000); // 60000 ms = 1 minute
+    }
+
+    // Nettoyage : arrêter l'intervalle lorsque le composant est démonté
+    return () => {
+      if (intervalIdRef.current) {
+        console.log("Arrêt de l'actualisation périodique");
+        clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
+      }
+    };
+  }, [selectedDate, loadHealthData, isToday]);
+
+  // Effet pour l'actualisation lors du retour au premier plan
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      // Actualiser quand l'app revient au premier plan et que la date est aujourd'hui
+      if (nextAppState === 'active' && isToday(selectedDate)) {
+        console.log('App revenue au premier plan, actualisation des données...');
+        loadHealthData(selectedDate);
+      }
+    };
+
+    // S'abonner aux changements d'état de l'application
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    // Nettoyage lors du démontage
+    return () => {
+      subscription.remove();
+    };
+  }, [selectedDate, loadHealthData, isToday]);
+
+  // Fonction pour obtenir un nom convivial pour une source
+  const getSourceDisplayName = (source: string): string => {
+    return sourceDisplayNames[source] || source;
+  };
+
+  // Fonction pour formater une date
+  const formatDate = (date: Date): string => {
+    return date.toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+  };
+
+  // Fonction pour formater l'heure de dernière mise à jour
+  const getLastUpdatedText = (): string => {
+    if (!lastUpdated) return 'Jamais mis à jour';
+
+    return `Mis à jour à ${lastUpdated.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })}`;
+  };
+
+  return {
+    steps,
+    yesterdaySteps,
+    stepsBySource,
+    selectedSource,
+    getSourceDisplayName,
+    isLoading,
+    loadHealthData,
+    formatDate,
+    isToday,
+    lastUpdated,
+    getLastUpdatedText,
+  };
+};
+
+export default useHealthData;
+</file>
+
+<file path="nativewind-env.d.ts">
+/// <reference types="nativewind/types" />
+
+// NOTE: This file should not be edited and should be committed with your source code. It is generated by NativeWind.
+</file>
+
+<file path="services/leaderboard.ts">
+// Ce service simule des appels API pour récupérer le classement
+// Dans une application réelle, ces fonctions feraient des appels à votre backend
+
+interface LeaderboardUser {
+  id: string;
+  name: string;
+  steps: number;
+}
+
+// Données fictives de classement
+const mockLeaderboard: LeaderboardUser[] = [
+  { id: '1', name: 'Sophie', steps: 12453 },
+  { id: '2', name: 'Thomas', steps: 11289 },
+  { id: '3', name: 'Julie', steps: 10876 },
+  { id: '4', name: 'Vous', steps: 8567 }, // L'utilisateur actuel
+  { id: '5', name: 'Maxime', steps: 7921 },
+  { id: '6', name: 'Léa', steps: 6543 },
+  { id: '7', name: 'Antoine', steps: 5432 },
+  { id: '8', name: 'Emma', steps: 4983 },
+  { id: '9', name: 'Lucas', steps: 3254 },
+  { id: '10', name: 'Chloé', steps: 2198 },
+];
+
+// Simuler une récupération des données de classement
+export async function getLeaderboard(): Promise<LeaderboardUser[]> {
+  // Simulation d'un délai réseau
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  // Trier par nombre de pas décroissant
+  return [...mockLeaderboard].sort((a, b) => b.steps - a.steps);
+}
+
+// Récupérer le rang de l'utilisateur actuel
+export async function getCurrentUserRank(): Promise<LeaderboardUser | null> {
+  // Simulation d'un délai réseau
+  await new Promise((resolve) => setTimeout(resolve, 800));
+
+  // Dans une vraie application, vous identifieriez l'utilisateur par son ID
+  return mockLeaderboard.find((user) => user.id === '4') || null;
+}
+
+// Mettre à jour les pas de l'utilisateur actuel
+export async function updateUserSteps(steps: number): Promise<void> {
+  // Simulation d'un délai réseau
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  // Dans une vraie application, vous mettriez à jour les données sur le serveur
+  const currentUser = mockLeaderboard.find((user) => user.id === '4');
+  if (currentUser) {
+    currentUser.steps = steps;
+  }
+}
+</file>
+
+<file path=".gitignore">
+node_modules/
+.expo/
+dist/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+
+
+
+
+ios
+android
+
+# macOS
+.DS_Store
+
+# Temporary files created by Metro to check the health of the file watcher
+.metro-health-check*
+</file>
+
+<file path="app-env.d.ts">
+// @ts-ignore
+/// <reference types="nativewind/types" />
+</file>
+
+<file path="app.json">
+{
+  "expo": {
+    "scheme": "onemorestep",
+    "name": "onemorestep",
+    "slug": "onemorestep",
+    "version": "1.0.0",
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "experiments": {
+      "tsconfigPaths": true
+    },
+    "plugins": [
+      "expo-font",
+      "expo-router",
+      "expo-health-connect",
+      "./androidManifestPlugin.js",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0",
+            "minSdkVersion": 26
+          }
+        }
+      ],
+      "expo-router"
+    ],
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.anonymous.onemorestep",
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_FLOORS_CLIMBED",
+        "android.permission.health.READ_DISTANCE"
+      ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "9b2db50d-23a7-461e-b830-7c9ab149ed11"
+      }
+    }
+  }
+}
+</file>
+
+<file path="App.tsx">
+import { useFonts, DotGothic16_400Regular } from '@expo-google-fonts/dotgothic16';
+import './global.css';
+import { Text, View, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useState } from 'react';
+import useHealthData from 'hooks/useHealthData';
+
+export default function App() {
+  const [fontsLoaded] = useFonts({
+    DotGothic16_400Regular,
+  });
+
+  // État pour la date sélectionnée
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  // Utiliser le hook avec la date sélectionnée
+  const { steps, yesterdaySteps, selectedSource, getSourceDisplayName, isLoading, formatDate } =
+    useHealthData(selectedDate);
+
+  // Fonction pour changer de jour
+  const changeDay = (direction: 'previous' | 'next') => {
+    const newDate = new Date(selectedDate);
+    if (direction === 'previous') {
+      newDate.setDate(newDate.getDate() - 1);
+    } else {
+      // Empêcher la sélection d'une date future
+      const today = new Date();
+      if (newDate < today) {
+        newDate.setDate(newDate.getDate() + 1);
+      }
+    }
+    setSelectedDate(newDate);
+  };
+
+  // Fonction pour vérifier si la date est aujourd'hui
+  const isToday = (date: Date): boolean => {
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  };
+
+  // Obtenir un texte convivial pour la date
+  const getDateText = (): string => {
+    if (isToday(selectedDate)) {
+      return 'Today';
+    } else {
+      return formatDate(selectedDate);
+    }
+  };
+
+  // Calculer le pourcentage de changement par rapport à la veille
+  const calculateChange = (): { percent: number; isIncrease: boolean } => {
+    if (yesterdaySteps === 0) return { percent: 0, isIncrease: true };
+
+    const change = steps - yesterdaySteps;
+    const percent = Math.abs(Math.round((change / yesterdaySteps) * 100));
+
+    return {
+      percent: percent,
+      isIncrease: change >= 0,
+    };
+  };
+
+  const { percent, isIncrease } = calculateChange();
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
+  return (
+    <View className="flex-1 items-center justify-center bg-black">
+      {/* Sélecteur de date */}
+      <View className="mb-6 w-full flex-row items-center justify-center px-4">
+        <TouchableOpacity
+          onPress={() => changeDay('previous')}
+          className="rounded-full bg-gray-800 p-2">
+          <Text className="font-dotgothic text-xl text-white">←</Text>
+        </TouchableOpacity>
+
+        <View className="flex-1 items-center">
+          <Text className="mx-4 font-dotgothic text-xl text-white">{getDateText()}</Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={() => changeDay('next')}
+          className="rounded-full bg-gray-800 p-2"
+          disabled={isToday(selectedDate)}
+          style={{ opacity: isToday(selectedDate) ? 0.5 : 1 }}>
+          <Text className="font-dotgothic text-xl text-white">→</Text>
+        </TouchableOpacity>
+      </View>
+
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#FFFFFF" />
+      ) : (
+        <View className="items-center">
+          <Text className="mb-1 font-dotgothic text-6xl text-white">{steps}</Text>
+          <Text className="mb-2 font-dotgothic text-2xl text-white">steps</Text>
+
+          {/* {selectedSource && steps > 0 && (
+            <Text className="mt-2 font-dotgothic text-sm text-gray-400">
+              Source : {getSourceDisplayName(selectedSource)}
+            </Text>
+          )} */}
+
+          {/* Comparaison avec la veille */}
+          {isToday(selectedDate) && yesterdaySteps > 0 && (
+            <View className="mt-6 items-center">
+              <Text className="font-dotgothic text-xl text-gray-400">
+                Yesterday: {yesterdaySteps}
+              </Text>
+
+              {/* {percent > 0 && (
+                <View className="mt-2 flex-row items-center">
+                  <Text
+                    className={`font-dotgothic text-lg ${isIncrease ? 'text-green-500' : 'text-red-500'}`}>
+                    {isIncrease ? '↑' : '↓'} {percent}%
+                  </Text>
+                  <Text className="ml-2 font-dotgothic text-sm text-gray-400">vs hier</Text>
+                </View>
+              )} */}
+            </View>
+          )}
+          <Text className="font-dotgothic text-xl text-gray-400">Highest: 12556</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+</file>
+
+<file path="babel.config.js">
+module.exports = function (api) {
+  api.cache(true);
+  let plugins = [];
+
+  return {
+    presets: [['babel-preset-expo', { jsxImportSource: 'nativewind' }], 'nativewind/babel'],
+
+    plugins: ['expo-router/babel'],
+  };
+};
+</file>
+
+<file path="cesconfig.json">
+{
+  "cesVersion": "2.18.1",
+  "projectName": "onemorestep",
+  "packages": [
+    {
+      "name": "nativewind",
+      "type": "styling"
+    }
+  ],
+  "flags": {
+    "noGit": false,
+    "noInstall": false,
+    "overwrite": false,
+    "importAlias": true,
+    "packageManager": "npm",
+    "eas": false,
+    "publish": false
+  },
+  "packageManager": {
+    "type": "npm",
+    "version": "10.9.2"
+  },
+  "os": {
+    "type": "Windows_NT",
+    "platform": "win32",
+    "arch": "x64",
+    "kernelVersion": "10.0.19045"
+  }
+}
+</file>
+
+<file path="components/Container.tsx">
+import { SafeAreaView } from 'react-native';
+
+export const Container = ({ children }: { children: React.ReactNode }) => {
+  return <SafeAreaView className={styles.container}>{children}</SafeAreaView>;
+};
+
+const styles = {
+  container: 'flex flex-1 m-6',
+};
+</file>
+
+<file path="components/EditScreenInfo.tsx">
+import { Text, View } from 'react-native';
+
+export const EditScreenInfo = ({ path }: { path: string }) => {
+  const title = 'Open up the code for this screen:';
+  const description =
+    'Change any of the text, save the file, and your app will automatically update.';
+
+  return (
+    <View>
+      <View className={styles.getStartedContainer}>
+        <Text className={styles.getStartedText}>{title}</Text>
+        <View className={styles.codeHighlightContainer + styles.homeScreenFilename}>
+          <Text>{path}</Text>
+        </View>
+        <Text className={styles.getStartedText}>{description}</Text>
+      </View>
+    </View>
+  );
+};
+
+const styles = {
+  codeHighlightContainer: `rounded-md px-1`,
+  getStartedContainer: `items-center mx-12`,
+  getStartedText: `text-lg leading-6 text-center`,
+  helpContainer: `items-center mx-5 mt-4`,
+  helpLink: `py-4`,
+  helpLinkText: `text-center`,
+  homeScreenFilename: `my-2`,
+};
+</file>
+
+<file path="components/ScreenContent.tsx">
+import { Text, View } from 'react-native';
+
+import { EditScreenInfo } from './EditScreenInfo';
+
+type ScreenContentProps = {
+  title: string;
+  path: string;
+  children?: React.ReactNode;
+};
+
+export const ScreenContent = ({ title, path, children }: ScreenContentProps) => {
+  return (
+    <View className={styles.container}>
+      <Text className={styles.title}>{title}</Text>
+      <View className={styles.separator} />
+      <EditScreenInfo path={path} />
+      {children}
+    </View>
+  );
+};
+const styles = {
+  container: `items-center flex-1 justify-center`,
+  separator: `h-[1px] my-7 w-4/5 bg-gray-200`,
+  title: `text-xl font-bold`,
+};
+</file>
+
+<file path="eslint.config.js">
+/* eslint-env node */
+const { defineConfig } = require('eslint/config');
+const expoConfig = require('eslint-config-expo/flat');
+
+module.exports = defineConfig([
+  expoConfig,
+  {
+    ignores: ['dist/*'],
+  },
+  {
+    rules: {
+      'react/display-name': 'off',
+    },
+  },
+]);
+</file>
+
+<file path="global.css">
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+</file>
+
+<file path="metro.config.js">
+const { getDefaultConfig } = require('expo/metro-config');
+const { withNativeWind } = require('nativewind/metro');
+
+const config = getDefaultConfig(__dirname);
+
+module.exports = withNativeWind(config, { input: './global.css' });
+</file>
+
+<file path="package.json">
+{
+  "name": "onemorestep",
+  "version": "1.0.0",
+  "scripts": {
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "start": "expo start",
+    "prebuild": "expo prebuild",
+    "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" && prettier -c \"**/*.{js,jsx,ts,tsx,json}\"",
+    "format": "eslint \"**/*.{js,jsx,ts,tsx}\" --fix && prettier \"**/*.{js,jsx,ts,tsx,json}\" --write",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@expo-google-fonts/dotgothic16": "^0.3.0",
+    "expo": "~53.0.8",
+    "expo-dev-client": "~5.1.8",
+    "expo-font": "~13.3.1",
+    "expo-health-connect": "^0.1.1",
+    "expo-status-bar": "~2.2.3",
+    "nativewind": "latest",
+    "react": "19.0.0",
+    "react-native": "0.79.2",
+    "react-native-health-connect": "^3.3.2",
+    "react-native-reanimated": "~3.17.4",
+    "react-native-safe-area-context": "5.4.0",
+    "expo-build-properties": "~0.14.6",
+    "expo-router": "~5.0.6",
+    "react-native-screens": "~4.10.0",
+    "expo-linking": "~7.1.4",
+    "expo-constants": "~17.1.6",
+    "@expo/vector-icons": "^14.1.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@types/react": "~19.0.10",
+    "eslint": "^9.25.1",
+    "eslint-config-expo": "^9.2.0",
+    "eslint-config-prettier": "^10.1.2",
+    "expo-build-properties": "^0.14.6",
+    "prettier": "^3.2.5",
+    "prettier-plugin-tailwindcss": "^0.5.11",
+    "tailwindcss": "^3.4.0",
+    "typescript": "~5.8.3"
+  },
+  "main": "expo-router/entry",
+  "private": true
+}
+</file>
+
+<file path="prettier.config.js">
+module.exports = {
+  printWidth: 100,
+  tabWidth: 2,
+  singleQuote: true,
+  bracketSameLine: true,
+  trailingComma: 'es5',
+
+  plugins: [require.resolve('prettier-plugin-tailwindcss')],
+  tailwindAttributes: ['className'],
+};
+</file>
+
+<file path="tailwind.config.js">
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ['./App.{js,ts,tsx}', './components/**/*.{js,ts,tsx}'],
+
+  presets: [require('nativewind/preset')],
+  theme: {
+    extend: {
+      fontFamily: {
+        dotgothic: ['DotGothic16_400Regular'],
+      },
+    },
+  },
+  plugins: [],
+};
+</file>
+
+<file path="tsconfig.json">
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "jsx": "react-jsx",
+
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["src/*"]
+    }
+  }
+}
+</file>
+
+</files>
