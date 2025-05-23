@@ -38,7 +38,13 @@ export default function HomeScreen() {
     const stepsDiff = newSteps - oldSteps;
     const levelsGained = getLevelsGained(oldSteps, newSteps);
 
-    if (stepsDiff > 0) {
+    if (levelsGained > 0) {
+      // Notification spéciale pour le passage de niveau
+      toast.success(`🎉 Level Up!`, {
+        description: `You reached level ${levelInfo.currentLevel}! (${stepsDiff} steps added!)`,
+        duration: 5000,
+      });
+    } else if (stepsDiff > 0) {
       toast.success(`${stepsDiff} steps added!`, {
         duration: 3000,
       });
@@ -51,13 +57,6 @@ export default function HomeScreen() {
       toast('No more step to add', {
         description: 'Your steps are up to date',
         duration: 3000,
-      });
-    }
-    if (levelsGained > 0) {
-      // Notification spéciale pour le passage de niveau
-      toast.success(`🎉 Level Up!`, {
-        description: `You reached level ${levelInfo.currentLevel}!`,
-        duration: 5000,
       });
     }
   };
@@ -145,9 +144,9 @@ export default function HomeScreen() {
           </View>
           <AppText className="mb-10 text-3xl text-white">Today</AppText>
           <AppText className="text-5xl text-white">{displayedSteps}</AppText>
-          <AppText className="text-base text-slate-300">
+          {/* <AppText className="text-base text-slate-300">
             {displayedSteps > 0 ? 'steps' : 'step'}
-          </AppText>
+          </AppText> */}
         </View>
 
         {isLoading && !refreshing ? (

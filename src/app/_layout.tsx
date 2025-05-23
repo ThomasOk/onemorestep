@@ -31,7 +31,7 @@ export default function RootLayout() {
             <Stack.Screen name="(app)" options={{ headerShown: false }} />
           </Stack>
           <Toaster
-            position="bottom-center"
+            position="top-center"
             swipeToDismissDirection="up"
             closeButton={true}
             toastOptions={{

@@ -476,144 +476,6 @@ export const PixelButton: React.FC<PixelButtonProps> = ({
 };
 </file>
 
-<file path="src/components/ui/progress-bar.tsx">
-import React from 'react';
-import { View, StyleSheet, StyleProp, ViewStyle, DimensionValue } from 'react-native';
-import Animated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
-
-export interface PixelProgressBarProps {
-  progress: number | SharedValue<number>; // Accepte une valeur normale ou une SharedValue de Reanimated
-  maxValue?: number;
-  width?: DimensionValue;
-  height?: number;
-  outerBorderWidth?: number;
-  innerBorderWidth?: number;
-  backgroundColor?: string;
-  fillColor?: string;
-  outerBorderColor?: string;
-  innerBorderColor?: string;
-  showPixelCorners?: boolean;
-  style?: StyleProp<ViewStyle>;
-}
-
-/**
- * Composant de barre de progression style pixel art/rétro (similaire à NES.css)
- * Avec double bordure : externe (blanche) et interne (noire)
- * Personnalisable en largeur et hauteur
- * Supporte l'animation avec Reanimated
- */
-export const ProgressBar: React.FC<PixelProgressBarProps> = ({
-  progress,
-  maxValue = 10000,
-  width = '100%',
-  height = 28,
-  outerBorderWidth = 4,
-  innerBorderWidth = 2,
-  backgroundColor = '#333333',
-  fillColor = '#92d050',
-  outerBorderColor = '#ffffff',
-  innerBorderColor = '#000000',
-  showPixelCorners = true,
-  style,
-}) => {
-  // Déterminer si progress est une SharedValue ou un nombre simple
-  const isSharedValue = typeof progress !== 'number';
-
-  // Style animé pour la barre de progression
-  const animatedProgressStyle = useAnimatedStyle(() => {
-    // Obtenir la valeur actuelle (soit directement, soit depuis la SharedValue)
-    const currentProgress = isSharedValue ? progress.value : progress;
-
-    // S'assurer que la progression est entre 0 et maxValue
-    const clampedProgress = Math.max(0, Math.min(currentProgress, maxValue));
-    const progressPercentage = (clampedProgress / maxValue) * 100;
-
-    return {
-      width: `${progressPercentage}%`,
-    };
-  });
-
-  // Coins pixelisés pour un effet encore plus rétro
-  const renderPixelCorners = () => {
-    if (!showPixelCorners) return null;
-
-    const cornerSize = Math.min(outerBorderWidth, 4);
-
-    return (
-      <>
-        {/* Coin supérieur gauche */}
-        <View
-          className="absolute left-0 top-0 bg-black"
-          style={{ width: cornerSize, height: cornerSize }}
-        />
-        {/* Coin supérieur droit */}
-        <View
-          className="absolute right-0 top-0 bg-black"
-          style={{ width: cornerSize, height: cornerSize }}
-        />
-        {/* Coin inférieur gauche */}
-        <View
-          className="absolute bottom-0 left-0 bg-black"
-          style={{ width: cornerSize, height: cornerSize }}
-        />
-        {/* Coin inférieur droit */}
-        <View
-          className="absolute bottom-0 right-0 bg-black"
-          style={{ width: cornerSize, height: cornerSize }}
-        />
-      </>
-    );
-  };
-
-  // Styles définis avec StyleSheet pour optimiser les performances
-  const styles = StyleSheet.create({
-    container: {
-      width,
-      height,
-      backgroundColor: outerBorderColor,
-      padding: outerBorderWidth,
-    },
-    innerBorder: {
-      width: '100%',
-      height: '100%',
-      backgroundColor: innerBorderColor,
-      padding: innerBorderWidth,
-    },
-    background: {
-      width: '100%',
-      height: '100%',
-      backgroundColor,
-      overflow: 'hidden',
-    },
-    progress: {
-      height: '100%',
-      backgroundColor: fillColor,
-    },
-    line: {
-      position: 'absolute',
-      width: '100%',
-      height: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    },
-  });
-
-  return (
-    <View className="relative shadow-md" style={[styles.container, style]}>
-      {renderPixelCorners()}
-
-      {/* Conteneur avec bordure interne noire */}
-      <View className="h-full w-full" style={styles.innerBorder}>
-        {/* Conteneur du fond de la barre et de la progression */}
-        <View className="h-full w-full overflow-hidden" style={styles.background}>
-          {/* Barre de progression animée */}
-          <Animated.View className="h-full" style={[styles.progress, animatedProgressStyle]} />
-        </View>
-      </View>
-    </View>
-  );
-};
-</file>
-
 <file path="src/features/leaderboard/components/leaderboard-item.tsx">
 import { View, Text } from 'react-native';
 
@@ -736,173 +598,6 @@ export const DevControls: React.FC<DevControlsProps> = ({
       )}
     </>
   );
-};
-</file>
-
-<file path="src/features/steps/components/steps-display.tsx">
-import React from 'react';
-import { View } from 'react-native';
-import { SharedValue } from 'react-native-reanimated';
-import { AppText } from '@/components/app-text';
-import { ProgressBar } from '@/components/ui/progress-bar';
-import { DevControls } from './dev-controls';
-import { LevelInfo } from '../utils/level-utils';
-
-interface StepsDisplayProps {
-  displayedSteps: number;
-  animatedProgress: SharedValue<number>;
-  yesterdaySteps: number;
-  levelInfo: LevelInfo;
-  devMode: boolean;
-  setDevMode: (mode: boolean) => void;
-  resetDevCounter: () => void;
-}
-
-export const StepsDisplay: React.FC<StepsDisplayProps> = ({
-  displayedSteps,
-  animatedProgress,
-  yesterdaySteps,
-  levelInfo,
-  devMode,
-  setDevMode,
-  resetDevCounter,
-}) => {
-  return (
-    <>
-      <View className="flex-1 items-center">
-        <View className="items-center">
-          <AppText className="mb-5 text-2xl text-white">Lv {levelInfo.currentLevel}</AppText>
-          {/* ↑ */}
-          {/* <AppText className="mb-5 text-3xl text-white">{displayedSteps}</AppText> */}
-        </View>
-        <View className="w-1/2">
-          <AppText className="text-base text-white">next level</AppText>
-
-          <ProgressBar
-            progress={animatedProgress}
-            maxValue={levelInfo.totalStepsForCurrentLevel}
-            width="100%"
-            height={12}
-            outerBorderWidth={2}
-            innerBorderWidth={2}
-            outerBorderColor="#ffffff"
-            innerBorderColor="#000000"
-            backgroundColor="#333333"
-            fillColor="#fecdd3"
-          />
-        </View>
-
-        <DevControls devMode={devMode} setDevMode={setDevMode} resetDevCounter={resetDevCounter} />
-      </View>
-
-      <View className="w-full items-center pb-10">
-        <AppText className="text-lg text-white">{`Yesterday: ${yesterdaySteps}`}</AppText>
-      </View>
-    </>
-  );
-};
-</file>
-
-<file path="src/features/steps/hooks/use-steps-animation.ts">
-// src/features/steps/hooks/use-steps-animation.ts
-import { useEffect, useState } from 'react';
-import {
-  useSharedValue,
-  withTiming,
-  withDelay,
-  withSequence,
-  Easing,
-} from 'react-native-reanimated';
-import { calculateLevelInfo, hasLeveledUp, LevelInfo } from '../utils/level-utils';
-
-export const useStepAnimation = (currentSteps: number, previousSteps: number = 0) => {
-  const [displayedSteps, setDisplayedSteps] = useState(previousSteps);
-  const [levelInfo, setLevelInfo] = useState<LevelInfo>(calculateLevelInfo(previousSteps));
-
-  // Valeurs animées pour le compteur et la barre de progression
-  const animatedStepsValue = useSharedValue(previousSteps);
-  const animatedProgress = useSharedValue(calculateLevelInfo(previousSteps).progressInCurrentLevel);
-
-  // Animation lorsque les pas changent
-  useEffect(() => {
-    if (currentSteps > 0) {
-      const currentLevelInfo = calculateLevelInfo(currentSteps);
-      const previousLevelInfo = calculateLevelInfo(previousSteps);
-      const leveledUp = hasLeveledUp(previousSteps, currentSteps);
-
-      // Mettre à jour les informations de niveau
-      setLevelInfo(currentLevelInfo);
-
-      if (leveledUp) {
-        // Animation spéciale pour le passage de niveau
-        // 1. Remplir la barre jusqu'à 1000 (fin du niveau précédent)
-        // 2. Réinitialiser la barre à 0
-        // 3. Remplir jusqu'à la nouvelle progression
-        animatedProgress.value = withSequence(
-          // Étape 1: Remplir jusqu'à 1000 (fin du niveau)
-          withTiming(1000, {
-            duration: 300,
-            easing: Easing.out(Easing.cubic),
-          }),
-          // Étape 2: Petite pause pour montrer le niveau complet
-          withDelay(150, withTiming(1000, { duration: 0 })),
-          // Étape 3: Réinitialiser à 0 (nouveau niveau)
-          withTiming(0, {
-            duration: 200,
-            easing: Easing.inOut(Easing.cubic),
-          }),
-          // Étape 4: Remplir jusqu'à la nouvelle progression
-          withTiming(currentLevelInfo.progressInCurrentLevel, {
-            duration: 500,
-            easing: Easing.out(Easing.cubic),
-          })
-        );
-      } else {
-        // Animation normale (pas de changement de niveau)
-        animatedProgress.value = withDelay(
-          300,
-          withTiming(currentLevelInfo.progressInCurrentLevel, {
-            duration: 500,
-            easing: Easing.out(Easing.cubic),
-          })
-        );
-      }
-
-      // Animation du compteur de pas (inchangée)
-      animatedStepsValue.value = withDelay(
-        300,
-        withTiming(currentSteps, {
-          duration: 800,
-          easing: Easing.out(Easing.cubic),
-        })
-      );
-
-      console.log(`Animation démarrée: de ${previousSteps} à ${currentSteps}`, {
-        leveledUp,
-        previousLevel: previousLevelInfo.currentLevel,
-        currentLevel: currentLevelInfo.currentLevel,
-        progressInLevel: currentLevelInfo.progressInCurrentLevel,
-      });
-    }
-  }, [currentSteps, previousSteps]);
-
-  // Mise à jour de l'affichage selon la valeur animée
-  useEffect(() => {
-    const updateDisplayedSteps = () => {
-      const valueToDisplay = Math.round(animatedStepsValue.value);
-      setDisplayedSteps(valueToDisplay);
-    };
-
-    const intervalId = setInterval(updateDisplayedSteps, 16); // ~60fps
-    return () => clearInterval(intervalId);
-  }, [animatedStepsValue.value]);
-
-  return {
-    displayedSteps,
-    animatedStepsValue,
-    animatedProgress,
-    levelInfo, // Nouvelles informations de niveau
-  };
 };
 </file>
 
@@ -1075,68 +770,6 @@ export const useSteps = (selectedDate: Date = new Date()) => {
     loadHealthData,
     formatDate,
   };
-};
-</file>
-
-<file path="src/features/steps/utils/level-utils.ts">
-// src/features/steps/utils/level-utils.ts
-
-export interface LevelInfo {
-  currentLevel: number;
-  progressInCurrentLevel: number;
-  progressPercentage: number;
-  stepsToNextLevel: number;
-  totalStepsForCurrentLevel: number;
-}
-
-const STEPS_PER_LEVEL = 1000;
-
-/**
- * Calcule les informations de niveau basées sur le nombre total de pas
- */
-export const calculateLevelInfo = (totalSteps: number): LevelInfo => {
-  // Le niveau actuel (commence à 0)
-  const currentLevel = Math.floor(totalSteps / STEPS_PER_LEVEL);
-
-  // Les pas dans le niveau actuel (reste de la division)
-  const progressInCurrentLevel = totalSteps % STEPS_PER_LEVEL;
-
-  // Pourcentage de progression dans le niveau actuel
-  const progressPercentage = (progressInCurrentLevel / STEPS_PER_LEVEL) * 100;
-
-  // Pas nécessaires pour atteindre le niveau suivant
-  const stepsToNextLevel = STEPS_PER_LEVEL - progressInCurrentLevel;
-
-  // Total de pas nécessaires pour compléter le niveau actuel
-  const totalStepsForCurrentLevel = STEPS_PER_LEVEL;
-
-  return {
-    currentLevel,
-    progressInCurrentLevel,
-    progressPercentage,
-    stepsToNextLevel,
-    totalStepsForCurrentLevel,
-  };
-};
-
-/**
- * Vérifie si l'utilisateur vient de passer un niveau
- */
-export const hasLeveledUp = (previousSteps: number, currentSteps: number): boolean => {
-  const previousLevel = Math.floor(previousSteps / STEPS_PER_LEVEL);
-  const currentLevel = Math.floor(currentSteps / STEPS_PER_LEVEL);
-
-  return currentLevel > previousLevel;
-};
-
-/**
- * Obtient le nombre de niveaux gagnés
- */
-export const getLevelsGained = (previousSteps: number, currentSteps: number): number => {
-  const previousLevel = Math.floor(previousSteps / STEPS_PER_LEVEL);
-  const currentLevel = Math.floor(currentSteps / STEPS_PER_LEVEL);
-
-  return Math.max(0, currentLevel - previousLevel);
 };
 </file>
 
@@ -1521,7 +1154,7 @@ export default function RootLayout() {
             <Stack.Screen name="(app)" options={{ headerShown: false }} />
           </Stack>
           <Toaster
-            position="bottom-center"
+            position="top-center"
             swipeToDismissDirection="up"
             closeButton={true}
             toastOptions={{
@@ -1565,8 +1198,545 @@ const styles = StyleSheet.create({
 });
 </file>
 
+<file path="src/app/(app)/leaderboard.tsx">
+import { View, Text, FlatList, ActivityIndicator } from 'react-native';
+import { useFonts, DotGothic16_400Regular } from '@expo-google-fonts/dotgothic16';
+import useLeaderboard from '@/features/leaderboard/hooks/use-leaderboard';
+import LeaderboardItem from '@/features/leaderboard/components/leaderboard-item';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+export default function LeaderboardScreen() {
+  const [fontsLoaded] = useFonts({
+    DotGothic16_400Regular,
+  });
+
+  const { leaderboard, isLoading, currentUserRank } = useLeaderboard();
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
+  return (
+    <SafeAreaView className="flex-1 bg-black">
+      <Text className="my-4 text-center font-dotgothic text-2xl text-white">Classement</Text>
+
+      {isLoading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
+      ) : (
+        <FlatList
+          data={leaderboard}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item, index }) => (
+            <LeaderboardItem
+              rank={index + 1}
+              user={item.name}
+              steps={item.steps}
+              isCurrentUser={item.id === currentUserRank?.id}
+            />
+          )}
+          ListEmptyComponent={
+            <Text className="p-4 text-center font-dotgothic text-white">
+              Aucune donnée de classement disponible
+            </Text>
+          }
+        />
+      )}
+    </SafeAreaView>
+  );
+}
+</file>
+
+<file path="src/components/ui/progress-bar.tsx">
+import React from 'react';
+import { View, StyleSheet, StyleProp, ViewStyle, DimensionValue } from 'react-native';
+import Animated, {
+  SharedValue,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  withSequence,
+  Easing,
+  useAnimatedReaction,
+  runOnJS,
+} from 'react-native-reanimated';
+
+export interface PixelProgressBarProps {
+  progress: number | SharedValue<number>;
+  maxValue?: number;
+  width?: DimensionValue;
+  height?: number;
+  outerBorderWidth?: number;
+  innerBorderWidth?: number;
+  backgroundColor?: string;
+  fillColor?: string;
+  outerBorderColor?: string;
+  innerBorderColor?: string;
+  showPixelCorners?: boolean;
+  style?: StyleProp<ViewStyle>;
+  // Nouveaux props pour l'effet flash
+  flashTrigger?: SharedValue<number>; // Déclenche le flash quand la valeur change
+  flashColor?: string;
+  flashDuration?: number;
+}
+
+export const ProgressBar: React.FC<PixelProgressBarProps> = ({
+  progress,
+  maxValue = 10000,
+  width = '100%',
+  height = 28,
+  outerBorderWidth = 4,
+  innerBorderWidth = 2,
+  backgroundColor = '#333333',
+  fillColor = '#92d050',
+  outerBorderColor = '#ffffff',
+  innerBorderColor = '#000000',
+  showPixelCorners = true,
+  style,
+  flashTrigger,
+  flashColor = '#ffffff',
+  flashDuration = 300,
+}) => {
+  // Valeur pour contrôler l'effet flash
+  const flashOpacity = useSharedValue(0);
+  const lastFlashTrigger = useSharedValue(0);
+
+  // Déclencher le flash quand flashTrigger change
+  useAnimatedReaction(
+    () => flashTrigger?.value ?? 0,
+    (currentValue, previousValue) => {
+      // Vérifier que la valeur a vraiment changé et qu'on n'est pas déjà en train de flasher
+      if (
+        currentValue !== previousValue &&
+        currentValue > lastFlashTrigger.value &&
+        flashOpacity.value === 0
+      ) {
+        lastFlashTrigger.value = currentValue;
+
+        // Animation flash: apparition rapide puis disparition
+        flashOpacity.value = withSequence(
+          withTiming(0.8, {
+            duration: flashDuration / 3,
+            easing: Easing.out(Easing.cubic),
+          }),
+          withTiming(0.4, {
+            duration: flashDuration / 3,
+            easing: Easing.inOut(Easing.cubic),
+          }),
+          withTiming(0, {
+            duration: flashDuration / 3,
+            easing: Easing.in(Easing.cubic),
+          })
+        );
+      }
+    }
+  );
+
+  // Détermine si progress est une SharedValue ou un nombre simple
+  const isSharedValue = typeof progress !== 'number';
+
+  // Style animé pour la barre de progression
+  const animatedProgressStyle = useAnimatedStyle(() => {
+    const currentProgress = isSharedValue ? progress.value : progress;
+    const clampedProgress = Math.max(0, Math.min(currentProgress, maxValue));
+    const progressPercentage = (clampedProgress / maxValue) * 100;
+
+    return {
+      width: `${progressPercentage}%`,
+    };
+  });
+
+  // Style animé pour l'effet flash
+  const flashStyle = useAnimatedStyle(() => {
+    return {
+      opacity: flashOpacity.value,
+    };
+  });
+
+  // Rendu des coins pixelisés
+  const renderPixelCorners = () => {
+    if (!showPixelCorners) return null;
+
+    const cornerSize = Math.min(outerBorderWidth, 4);
+
+    return (
+      <>
+        <View
+          className="absolute left-0 top-0 bg-black"
+          style={{ width: cornerSize, height: cornerSize }}
+        />
+        <View
+          className="absolute right-0 top-0 bg-black"
+          style={{ width: cornerSize, height: cornerSize }}
+        />
+        <View
+          className="absolute bottom-0 left-0 bg-black"
+          style={{ width: cornerSize, height: cornerSize }}
+        />
+        <View
+          className="absolute bottom-0 right-0 bg-black"
+          style={{ width: cornerSize, height: cornerSize }}
+        />
+      </>
+    );
+  };
+
+  const styles = StyleSheet.create({
+    container: {
+      width,
+      height,
+      backgroundColor: outerBorderColor,
+      padding: outerBorderWidth,
+    },
+    innerBorder: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: innerBorderColor,
+      padding: innerBorderWidth,
+    },
+    background: {
+      width: '100%',
+      height: '100%',
+      backgroundColor,
+      overflow: 'hidden',
+    },
+    progress: {
+      height: '100%',
+      backgroundColor: fillColor,
+    },
+    // Styles pour l'effet flash
+    flashOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: flashColor,
+      pointerEvents: 'none',
+    },
+    sparkle: {
+      position: 'absolute',
+      width: 4,
+      height: 4,
+      backgroundColor: flashColor,
+      borderRadius: 2,
+    },
+  });
+
+  return (
+    <View className="relative shadow-md" style={[styles.container, style]}>
+      {renderPixelCorners()}
+
+      <View className="h-full w-full" style={styles.innerBorder}>
+        <View className="relative h-full w-full overflow-hidden" style={styles.background}>
+          {/* Barre de progression */}
+          <Animated.View className="h-full" style={[styles.progress, animatedProgressStyle]} />
+
+          {/* Effet flash par-dessus la barre */}
+          <Animated.View style={[styles.flashOverlay, flashStyle]} pointerEvents="none" />
+
+          {/* Effet de brillance/sparkle optionnel */}
+          <Animated.View style={[styles.sparkle, { top: '25%', left: '20%' }, flashStyle]} />
+          <Animated.View style={[styles.sparkle, { top: '60%', right: '30%' }, flashStyle]} />
+          <Animated.View style={[styles.sparkle, { top: '40%', left: '60%' }, flashStyle]} />
+        </View>
+      </View>
+    </View>
+  );
+};
+</file>
+
+<file path="src/features/steps/utils/level-utils.ts">
+export interface LevelInfo {
+  currentLevel: number;
+  progressInCurrentLevel: number;
+  progressPercentage: number;
+  stepsToNextLevel: number;
+  totalStepsForCurrentLevel: number;
+}
+
+const STEPS_PER_LEVEL = 1000;
+
+/**
+ * Calcule les informations de niveau basées sur le nombre total de pas
+ */
+export const calculateLevelInfo = (totalSteps: number): LevelInfo => {
+  // Le niveau actuel (commence à 0)
+  const currentLevel = Math.floor(totalSteps / STEPS_PER_LEVEL);
+
+  // Les pas dans le niveau actuel (reste de la division)
+  const progressInCurrentLevel = totalSteps % STEPS_PER_LEVEL;
+
+  // Pourcentage de progression dans le niveau actuel
+  const progressPercentage = (progressInCurrentLevel / STEPS_PER_LEVEL) * 100;
+
+  // Pas nécessaires pour atteindre le niveau suivant
+  const stepsToNextLevel = STEPS_PER_LEVEL - progressInCurrentLevel;
+
+  // Total de pas nécessaires pour compléter le niveau actuel
+  const totalStepsForCurrentLevel = STEPS_PER_LEVEL;
+
+  return {
+    currentLevel,
+    progressInCurrentLevel,
+    progressPercentage,
+    stepsToNextLevel,
+    totalStepsForCurrentLevel,
+  };
+};
+
+/**
+ * Vérifie si l'utilisateur vient de passer un niveau
+ */
+export const hasLeveledUp = (previousSteps: number, currentSteps: number): boolean => {
+  const previousLevel = Math.floor(previousSteps / STEPS_PER_LEVEL);
+  const currentLevel = Math.floor(currentSteps / STEPS_PER_LEVEL);
+
+  return currentLevel > previousLevel;
+};
+
+/**
+ * Obtient le nombre de niveaux gagnés
+ */
+export const getLevelsGained = (previousSteps: number, currentSteps: number): number => {
+  const previousLevel = Math.floor(previousSteps / STEPS_PER_LEVEL);
+  const currentLevel = Math.floor(currentSteps / STEPS_PER_LEVEL);
+
+  return Math.max(0, currentLevel - previousLevel);
+};
+</file>
+
+<file path="tailwind.config.js">
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ['./src/**/*.{js,jsx,ts,tsx}'],
+
+  presets: [require('nativewind/preset')],
+  theme: {
+    extend: {
+      fontFamily: {
+        dotgothic: ['DotGothic16_400Regular'],
+      },
+    },
+  },
+  plugins: [],
+};
+</file>
+
+<file path="tsconfig.json">
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "jsx": "react-jsx",
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "onemorestep",
+  "version": "1.0.0",
+  "scripts": {
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "start": "expo start",
+    "prebuild": "expo prebuild",
+    "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" && prettier -c \"**/*.{js,jsx,ts,tsx,json}\"",
+    "format": "eslint \"**/*.{js,jsx,ts,tsx}\" --fix && prettier \"**/*.{js,jsx,ts,tsx,json}\" --write",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@expo-google-fonts/dotgothic16": "^0.3.0",
+    "@expo/vector-icons": "^14.1.0",
+    "expo": "~53.0.8",
+    "expo-build-properties": "~0.14.6",
+    "expo-constants": "~17.1.6",
+    "expo-dev-client": "~5.1.8",
+    "expo-font": "~13.3.1",
+    "expo-health-connect": "^0.1.1",
+    "expo-linking": "~7.1.4",
+    "expo-router": "~5.0.6",
+    "expo-splash-screen": "~0.30.8",
+    "expo-status-bar": "~2.2.3",
+    "nativewind": "latest",
+    "react": "19.0.0",
+    "react-native": "0.79.2",
+    "react-native-gesture-handler": "~2.24.0",
+    "react-native-health-connect": "^3.3.2",
+    "react-native-reanimated": "~3.17.4",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-screens": "~4.10.0",
+    "react-native-svg": "15.11.2",
+    "sonner-native": "^0.20.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@types/react": "~19.0.10",
+    "eslint": "^9.25.1",
+    "eslint-config-expo": "^9.2.0",
+    "eslint-config-prettier": "^10.1.2",
+    "expo-build-properties": "^0.14.6",
+    "prettier": "^3.2.5",
+    "prettier-plugin-tailwindcss": "^0.5.11",
+    "tailwindcss": "^3.4.0",
+    "typescript": "~5.8.3"
+  },
+  "main": "expo-router/entry",
+  "private": true
+}
+</file>
+
+<file path="src/features/steps/hooks/use-steps-animation.ts">
+import { useEffect, useState } from 'react';
+import {
+  useSharedValue,
+  withTiming,
+  withDelay,
+  withSequence,
+  Easing,
+  runOnJS,
+} from 'react-native-reanimated';
+import { calculateLevelInfo, hasLeveledUp, LevelInfo } from '../utils/level-utils';
+
+export const useStepAnimation = (currentSteps: number, previousSteps: number = 0) => {
+  const [displayedSteps, setDisplayedSteps] = useState(previousSteps);
+  const [levelInfo, setLevelInfo] = useState<LevelInfo>(calculateLevelInfo(previousSteps));
+  const [displayedLevel, setDisplayedLevel] = useState(
+    calculateLevelInfo(previousSteps).currentLevel
+  );
+  const [isLevelingUp, setIsLevelingUp] = useState(false);
+
+  // Valeurs animées
+  const animatedStepsValue = useSharedValue(previousSteps);
+  const animatedProgress = useSharedValue(calculateLevelInfo(previousSteps).progressInCurrentLevel);
+
+  // Flash trigger qui ne se déclenche QUE pour les passages de niveau
+  const levelUpFlashTrigger = useSharedValue(0);
+
+  const updateDisplayedLevel = (newLevel: number) => {
+    setDisplayedLevel(newLevel);
+    setIsLevelingUp(false);
+  };
+
+  // Fonction pour déclencher le flash de passage de niveau
+  const triggerLevelUpFlash = () => {
+    levelUpFlashTrigger.value = levelUpFlashTrigger.value + 1;
+    console.log('🎉 Level up flash triggered!');
+  };
+
+  const ANIMATION_TIMINGS = {
+    fillToPrevious: 300,
+    pauseAtFull: 0,
+    resetToZero: 200,
+    fillToNew: 500,
+    stepsCounter: 800,
+    delayBeforeStart: 300,
+  };
+
+  useEffect(() => {
+    if (currentSteps > 0) {
+      const currentLevelInfo = calculateLevelInfo(currentSteps);
+      const previousLevelInfo = calculateLevelInfo(previousSteps);
+      const leveledUp = hasLeveledUp(previousSteps, currentSteps);
+
+      setLevelInfo(currentLevelInfo);
+
+      if (leveledUp) {
+        setIsLevelingUp(true);
+        console.log(
+          `🚀 Level up detected: ${previousLevelInfo.currentLevel} → ${currentLevelInfo.currentLevel}`
+        );
+
+        animatedProgress.value = withSequence(
+          // 1. Remplir jusqu'à la fin du niveau précédent
+          withTiming(
+            1000,
+            {
+              duration: ANIMATION_TIMINGS.fillToPrevious,
+              easing: Easing.out(Easing.cubic),
+            },
+            () => {
+              // Flash UNIQUEMENT au passage de niveau quand on atteint 100%
+              runOnJS(triggerLevelUpFlash)();
+            }
+          ),
+
+          // 2. Pause
+          withDelay(ANIMATION_TIMINGS.pauseAtFull, withTiming(1000, { duration: 0 })),
+
+          // 3. Vider la barre + mettre à jour le niveau
+          withTiming(
+            0,
+            {
+              duration: ANIMATION_TIMINGS.resetToZero,
+              easing: Easing.inOut(Easing.cubic),
+            },
+            () => {
+              runOnJS(updateDisplayedLevel)(currentLevelInfo.currentLevel);
+            }
+          ),
+
+          // 4. Remplir vers la nouvelle progression
+          withTiming(currentLevelInfo.progressInCurrentLevel, {
+            duration: ANIMATION_TIMINGS.fillToNew,
+            easing: Easing.out(Easing.cubic),
+          })
+        );
+      } else {
+        // Animation normale - PAS de flash
+        console.log('📈 Normal progress animation');
+        animatedProgress.value = withDelay(
+          ANIMATION_TIMINGS.delayBeforeStart,
+          withTiming(currentLevelInfo.progressInCurrentLevel, {
+            duration: ANIMATION_TIMINGS.fillToNew,
+            easing: Easing.out(Easing.cubic),
+          })
+        );
+      }
+
+      // Animation du compteur de pas
+      animatedStepsValue.value = withDelay(
+        ANIMATION_TIMINGS.delayBeforeStart,
+        withTiming(currentSteps, {
+          duration: ANIMATION_TIMINGS.stepsCounter,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
+    }
+  }, [currentSteps, previousSteps]);
+
+  useEffect(() => {
+    const updateDisplayedSteps = () => {
+      const valueToDisplay = Math.round(animatedStepsValue.value);
+      setDisplayedSteps(valueToDisplay);
+    };
+
+    const intervalId = setInterval(updateDisplayedSteps, 16);
+    return () => clearInterval(intervalId);
+  }, [animatedStepsValue.value]);
+
+  return {
+    displayedSteps,
+    animatedStepsValue,
+    animatedProgress,
+    flashTrigger: levelUpFlashTrigger, // Renommé pour clarifier
+    levelInfo: {
+      ...levelInfo,
+      currentLevel: displayedLevel,
+    },
+    isLevelingUp,
+  };
+};
+</file>
+
 <file path="src/app/(app)/home.tsx">
-// src/app/(app)/home.tsx
 import { View, ActivityIndicator, ScrollView, RefreshControl } from 'react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -1592,7 +1762,8 @@ export default function HomeScreen() {
 
   const steps = devMode ? originalSteps + refreshCount * 500 : originalSteps;
 
-  const { displayedSteps, animatedProgress, levelInfo } = useStepAnimation(steps, previousSteps);
+  const { displayedSteps, animatedProgress, flashTrigger, levelInfo, isLevelingUp } =
+    useStepAnimation(steps, previousSteps);
 
   const showSyncNotification = (newSteps: number, oldSteps: number, hasError: boolean) => {
     if (hasError) {
@@ -1606,13 +1777,6 @@ export default function HomeScreen() {
     const stepsDiff = newSteps - oldSteps;
     const levelsGained = getLevelsGained(oldSteps, newSteps);
 
-    if (levelsGained > 0) {
-      // Notification spéciale pour le passage de niveau
-      toast.success(`🎉 Level Up!`, {
-        description: `You reached level ${levelInfo.currentLevel}!`,
-        duration: 5000,
-      });
-    }
     if (stepsDiff > 0) {
       toast.success(`${stepsDiff} steps added!`, {
         duration: 3000,
@@ -1626,6 +1790,13 @@ export default function HomeScreen() {
       toast('No more step to add', {
         description: 'Your steps are up to date',
         duration: 3000,
+      });
+    }
+    if (levelsGained > 0) {
+      // Notification spéciale pour le passage de niveau
+      toast.success(`🎉 Level Up!`, {
+        description: `You reached level ${levelInfo.currentLevel}!`,
+        duration: 5000,
       });
     }
   };
@@ -1727,8 +1898,10 @@ export default function HomeScreen() {
           <StepsDisplay
             displayedSteps={displayedSteps}
             animatedProgress={animatedProgress}
+            flashTrigger={flashTrigger}
             yesterdaySteps={yesterdaySteps}
             levelInfo={levelInfo}
+            isLevelingUp={isLevelingUp} // Ajouter cette ligne
             devMode={devMode}
             setDevMode={setDevMode}
             resetDevCounter={resetDevCounter}
@@ -1740,140 +1913,173 @@ export default function HomeScreen() {
 }
 </file>
 
-<file path="src/app/(app)/leaderboard.tsx">
-import { View, Text, FlatList, ActivityIndicator } from 'react-native';
-import { useFonts, DotGothic16_400Regular } from '@expo-google-fonts/dotgothic16';
-import useLeaderboard from '@/features/leaderboard/hooks/use-leaderboard';
-import LeaderboardItem from '@/features/leaderboard/components/leaderboard-item';
-import { SafeAreaView } from 'react-native-safe-area-context';
+<file path="src/features/steps/components/steps-display.tsx">
+// src/features/steps/components/steps-display.tsx
+import React, { useState } from 'react';
+import { View, LayoutChangeEvent } from 'react-native';
+import Animated, {
+  SharedValue,
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSequence,
+  withDelay,
+  Easing,
+  useAnimatedReaction,
+} from 'react-native-reanimated';
+import { AppText } from '@/components/app-text';
+import { ProgressBar } from '@/components/ui/progress-bar';
+import { DevControls } from './dev-controls';
+import { LevelInfo } from '../utils/level-utils';
 
-export default function LeaderboardScreen() {
-  const [fontsLoaded] = useFonts({
-    DotGothic16_400Regular,
-  });
+interface StepsDisplayProps {
+  displayedSteps: number;
+  animatedProgress: SharedValue<number>;
+  flashTrigger: SharedValue<number>;
+  yesterdaySteps: number;
+  levelInfo: LevelInfo;
+  devMode: boolean;
+  setDevMode: (mode: boolean) => void;
+  resetDevCounter: () => void;
+  isLevelingUp: boolean;
+}
 
-  const { leaderboard, isLoading, currentUserRank } = useLeaderboard();
+// Composant Badge avec animation verticale
+const LevelUpBadge: React.FC<{
+  flashTrigger: SharedValue<number>;
+  textWidth: number;
+}> = ({ flashTrigger, textWidth }) => {
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(30); // Commence EN BAS (valeur positive)
+  const scale = useSharedValue(0.8);
+  const animatedLeft = useSharedValue(textWidth + 8);
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  // Animer la position quand textWidth change
+  React.useEffect(() => {
+    animatedLeft.value = withTiming(textWidth + 8, {
+      duration: 200,
+      easing: Easing.inOut(Easing.cubic),
+    });
+  }, [textWidth]);
+
+  useAnimatedReaction(
+    () => flashTrigger?.value ?? 0,
+    (currentValue, previousValue) => {
+      if (currentValue !== previousValue && currentValue > 0) {
+        opacity.value = withSequence(
+          withTiming(1, { duration: 300, easing: Easing.out(Easing.back(1.2)) }),
+          withDelay(4000, withTiming(0, { duration: 500, easing: Easing.in(Easing.cubic) }))
+        );
+
+        // Animation de bas en haut
+        translateY.value = withSequence(
+          withTiming(0, { duration: 300, easing: Easing.out(Easing.back(1.2)) }), // Monte vers sa position normale
+          withDelay(4000, withTiming(-20, { duration: 500, easing: Easing.in(Easing.cubic) })) // Continue vers le haut pour disparaître
+        );
+
+        scale.value = withSequence(
+          withTiming(1.1, { duration: 150, easing: Easing.out(Easing.back(1.2)) }),
+          withTiming(1, { duration: 200, easing: Easing.inOut(Easing.cubic) }),
+          withDelay(3800, withTiming(0.8, { duration: 500, easing: Easing.in(Easing.cubic) }))
+        );
+      }
+    }
+  );
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    left: animatedLeft.value,
+    transform: [
+      { translateY: translateY.value }, // Animation verticale au lieu d'horizontale
+      { scale: scale.value },
+    ],
+  }));
 
   return (
-    <SafeAreaView className="flex-1 bg-black">
-      <Text className="my-4 text-center font-dotgothic text-2xl text-white">Classement</Text>
-
-      {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#FFFFFF" />
-        </View>
-      ) : (
-        <FlatList
-          data={leaderboard}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => (
-            <LeaderboardItem
-              rank={index + 1}
-              user={item.name}
-              steps={item.steps}
-              isCurrentUser={item.id === currentUserRank?.id}
-            />
-          )}
-          ListEmptyComponent={
-            <Text className="p-4 text-center font-dotgothic text-white">
-              Aucune donnée de classement disponible
-            </Text>
-          }
-        />
-      )}
-    </SafeAreaView>
+    <Animated.View
+      style={[
+        animatedStyle,
+        {
+          position: 'absolute',
+          top: 0,
+          backgroundColor: '#000000',
+          // paddingHorizontal: 8,
+          // paddingVertical: 2,
+          // borderRadius: 6,
+          // borderWidth: 2,
+          // borderColor: '#22c55e',
+        },
+      ]}
+      pointerEvents="none">
+      <AppText className="text-xs text-green-500">LEVEL UP↑</AppText>
+    </Animated.View>
   );
-}
-</file>
-
-<file path="tailwind.config.js">
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: ['./src/**/*.{js,jsx,ts,tsx}'],
-
-  presets: [require('nativewind/preset')],
-  theme: {
-    extend: {
-      fontFamily: {
-        dotgothic: ['DotGothic16_400Regular'],
-      },
-    },
-  },
-  plugins: [],
 };
-</file>
 
-<file path="tsconfig.json">
-{
-  "extends": "expo/tsconfig.base",
-  "compilerOptions": {
-    "strict": true,
-    "jsx": "react-jsx",
+export const StepsDisplay: React.FC<StepsDisplayProps> = ({
+  displayedSteps,
+  animatedProgress,
+  flashTrigger,
+  yesterdaySteps,
+  levelInfo,
+  devMode,
+  setDevMode,
+  resetDevCounter,
+  isLevelingUp,
+}) => {
+  // État pour stocker la largeur du texte du niveau
+  const [textWidth, setTextWidth] = useState(0);
 
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
-  }
-}
-</file>
+  // Fonction appelée quand le texte est mesuré
+  const onTextLayout = (event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+    setTextWidth(width);
+  };
 
-<file path="package.json">
-{
-  "name": "onemorestep",
-  "version": "1.0.0",
-  "scripts": {
-    "android": "expo run:android",
-    "ios": "expo run:ios",
-    "start": "expo start",
-    "prebuild": "expo prebuild",
-    "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" && prettier -c \"**/*.{js,jsx,ts,tsx,json}\"",
-    "format": "eslint \"**/*.{js,jsx,ts,tsx}\" --fix && prettier \"**/*.{js,jsx,ts,tsx,json}\" --write",
-    "web": "expo start --web"
-  },
-  "dependencies": {
-    "@expo-google-fonts/dotgothic16": "^0.3.0",
-    "@expo/vector-icons": "^14.1.0",
-    "expo": "~53.0.8",
-    "expo-build-properties": "~0.14.6",
-    "expo-constants": "~17.1.6",
-    "expo-dev-client": "~5.1.8",
-    "expo-font": "~13.3.1",
-    "expo-health-connect": "^0.1.1",
-    "expo-linking": "~7.1.4",
-    "expo-router": "~5.0.6",
-    "expo-splash-screen": "~0.30.8",
-    "expo-status-bar": "~2.2.3",
-    "nativewind": "latest",
-    "react": "19.0.0",
-    "react-native": "0.79.2",
-    "react-native-gesture-handler": "~2.24.0",
-    "react-native-health-connect": "^3.3.2",
-    "react-native-reanimated": "~3.17.4",
-    "react-native-safe-area-context": "5.4.0",
-    "react-native-screens": "~4.10.0",
-    "react-native-svg": "15.11.2",
-    "sonner-native": "^0.20.0"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.20.0",
-    "@types/react": "~19.0.10",
-    "eslint": "^9.25.1",
-    "eslint-config-expo": "^9.2.0",
-    "eslint-config-prettier": "^10.1.2",
-    "expo-build-properties": "^0.14.6",
-    "prettier": "^3.2.5",
-    "prettier-plugin-tailwindcss": "^0.5.11",
-    "tailwindcss": "^3.4.0",
-    "typescript": "~5.8.3"
-  },
-  "main": "expo-router/entry",
-  "private": true
-}
+  return (
+    <>
+      <View className="flex-1 items-center">
+        <View className="items-center">
+          <View className="relative mb-5">
+            {/* Texte du niveau avec mesure de largeur */}
+            <AppText className="text-2xl text-white" onLayout={onTextLayout}>
+              Lv {levelInfo.currentLevel}
+            </AppText>
+
+            {/* Badge positionné dynamiquement */}
+            {textWidth > 0 && <LevelUpBadge flashTrigger={flashTrigger} textWidth={textWidth} />}
+          </View>
+        </View>
+
+        <View className="w-1/2">
+          <AppText className="text-base text-white">next level</AppText>
+
+          <ProgressBar
+            progress={animatedProgress}
+            flashTrigger={flashTrigger}
+            maxValue={levelInfo.totalStepsForCurrentLevel}
+            width="100%"
+            height={12}
+            outerBorderWidth={2}
+            innerBorderWidth={2}
+            outerBorderColor="#ffffff"
+            innerBorderColor="#000000"
+            backgroundColor="#333333"
+            fillColor="#fecdd3"
+            flashColor="#ffffff"
+            flashDuration={400}
+          />
+        </View>
+
+        <DevControls devMode={devMode} setDevMode={setDevMode} resetDevCounter={resetDevCounter} />
+      </View>
+
+      <View className="w-full items-center pb-10">
+        <AppText className="text-lg text-white">{`Yesterday: ${yesterdaySteps}`}</AppText>
+      </View>
+    </>
+  );
+};
 </file>
 
 </files>

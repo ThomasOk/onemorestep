@@ -1,3 +1,4 @@
+// src/features/steps/components/steps-display.tsx
 import React, { useState } from 'react';
 import { View, LayoutChangeEvent } from 'react-native';
 import Animated, {
@@ -27,13 +28,13 @@ interface StepsDisplayProps {
   isLevelingUp: boolean;
 }
 
-// Composant Badge avec positionnement animé
+// Composant Badge avec animation verticale
 const LevelUpBadge: React.FC<{
   flashTrigger: SharedValue<number>;
   textWidth: number;
 }> = ({ flashTrigger, textWidth }) => {
   const opacity = useSharedValue(0);
-  const translateX = useSharedValue(20);
+  const translateY = useSharedValue(30); // Commence EN BAS (valeur positive)
   const scale = useSharedValue(0.8);
   const animatedLeft = useSharedValue(textWidth + 8);
 
@@ -51,18 +52,19 @@ const LevelUpBadge: React.FC<{
       if (currentValue !== previousValue && currentValue > 0) {
         opacity.value = withSequence(
           withTiming(1, { duration: 300, easing: Easing.out(Easing.back(1.2)) }),
-          withDelay(2000, withTiming(0, { duration: 500, easing: Easing.in(Easing.cubic) }))
+          withDelay(4000, withTiming(0, { duration: 500, easing: Easing.in(Easing.cubic) }))
         );
 
-        translateX.value = withSequence(
-          withTiming(0, { duration: 300, easing: Easing.out(Easing.back(1.2)) }),
-          withDelay(2000, withTiming(20, { duration: 500, easing: Easing.in(Easing.cubic) }))
+        // Animation de bas en haut
+        translateY.value = withSequence(
+          withTiming(0, { duration: 300, easing: Easing.out(Easing.back(1.2)) }), // Monte vers sa position normale
+          withDelay(4000, withTiming(-20, { duration: 500, easing: Easing.in(Easing.cubic) })) // Continue vers le haut pour disparaître
         );
 
         scale.value = withSequence(
           withTiming(1.1, { duration: 150, easing: Easing.out(Easing.back(1.2)) }),
           withTiming(1, { duration: 200, easing: Easing.inOut(Easing.cubic) }),
-          withDelay(1800, withTiming(0.8, { duration: 500, easing: Easing.in(Easing.cubic) }))
+          withDelay(3800, withTiming(0.8, { duration: 500, easing: Easing.in(Easing.cubic) }))
         );
       }
     }
@@ -70,8 +72,11 @@ const LevelUpBadge: React.FC<{
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
-    left: animatedLeft.value, // Position animée
-    transform: [{ translateX: translateX.value }, { scale: scale.value }],
+    left: animatedLeft.value,
+    transform: [
+      { translateY: translateY.value }, // Animation verticale au lieu d'horizontale
+      { scale: scale.value },
+    ],
   }));
 
   return (
@@ -82,15 +87,15 @@ const LevelUpBadge: React.FC<{
           position: 'absolute',
           top: 0,
           backgroundColor: '#000000',
-          paddingHorizontal: 8,
-          paddingVertical: 2,
-          borderRadius: 6,
+          // paddingHorizontal: 8,
+          // paddingVertical: 2,
+          // borderRadius: 6,
           // borderWidth: 2,
           // borderColor: '#22c55e',
         },
       ]}
       pointerEvents="none">
-      <AppText className="text-xs text-green-500">LEVEL UP!</AppText>
+      <AppText className="text-xs text-green-500">LEVEL UP↑</AppText>
     </Animated.View>
   );
 };
