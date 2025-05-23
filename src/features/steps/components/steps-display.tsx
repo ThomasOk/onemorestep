@@ -1,6 +1,5 @@
-// src/features/steps/components/steps-display.tsx
-import React from 'react';
-import { View } from 'react-native';
+import React, { useState } from 'react';
+import { View, LayoutChangeEvent } from 'react-native';
 import Animated, {
   SharedValue,
   useSharedValue,
@@ -28,17 +27,28 @@ interface StepsDisplayProps {
   isLevelingUp: boolean;
 }
 
-// Composant Badge "Level Up!" séparé
-const LevelUpBadge: React.FC<{ flashTrigger: SharedValue<number> }> = ({ flashTrigger }) => {
+// Composant Badge avec positionnement animé
+const LevelUpBadge: React.FC<{
+  flashTrigger: SharedValue<number>;
+  textWidth: number;
+}> = ({ flashTrigger, textWidth }) => {
   const opacity = useSharedValue(0);
-  const translateX = useSharedValue(20); // Commence à droite, hors de vue
+  const translateX = useSharedValue(20);
   const scale = useSharedValue(0.8);
+  const animatedLeft = useSharedValue(textWidth + 8);
+
+  // Animer la position quand textWidth change
+  React.useEffect(() => {
+    animatedLeft.value = withTiming(textWidth + 8, {
+      duration: 200,
+      easing: Easing.inOut(Easing.cubic),
+    });
+  }, [textWidth]);
 
   useAnimatedReaction(
     () => flashTrigger?.value ?? 0,
     (currentValue, previousValue) => {
       if (currentValue !== previousValue && currentValue > 0) {
-        // Animation d'apparition du badge depuis la droite
         opacity.value = withSequence(
           withTiming(1, { duration: 300, easing: Easing.out(Easing.back(1.2)) }),
           withDelay(2000, withTiming(0, { duration: 500, easing: Easing.in(Easing.cubic) }))
@@ -60,6 +70,7 @@ const LevelUpBadge: React.FC<{ flashTrigger: SharedValue<number> }> = ({ flashTr
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
+    left: animatedLeft.value, // Position animée
     transform: [{ translateX: translateX.value }, { scale: scale.value }],
   }));
 
@@ -69,13 +80,12 @@ const LevelUpBadge: React.FC<{ flashTrigger: SharedValue<number> }> = ({ flashTr
         animatedStyle,
         {
           position: 'absolute',
-          right: -70, // Position fixe à droite du texte (ajuste selon la largeur de ton texte)
-          top: 0, // Aligné avec le haut du texte
+          top: 0,
           backgroundColor: '#000000',
           paddingHorizontal: 8,
           paddingVertical: 2,
           borderRadius: 6,
-          // borderWidth: 1,
+          // borderWidth: 2,
           // borderColor: '#22c55e',
         },
       ]}
@@ -96,16 +106,27 @@ export const StepsDisplay: React.FC<StepsDisplayProps> = ({
   resetDevCounter,
   isLevelingUp,
 }) => {
+  // État pour stocker la largeur du texte du niveau
+  const [textWidth, setTextWidth] = useState(0);
+
+  // Fonction appelée quand le texte est mesuré
+  const onTextLayout = (event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+    setTextWidth(width);
+  };
+
   return (
     <>
       <View className="flex-1 items-center">
         <View className="items-center">
-          {/* Conteneur du niveau - structure originale restaurée */}
           <View className="relative mb-5">
-            <AppText className="text-2xl text-white">Lv {levelInfo.currentLevel}</AppText>
+            {/* Texte du niveau avec mesure de largeur */}
+            <AppText className="text-2xl text-white" onLayout={onTextLayout}>
+              Lv {levelInfo.currentLevel}
+            </AppText>
 
-            {/* Badge "Level Up!" positionné absolument à droite */}
-            <LevelUpBadge flashTrigger={flashTrigger} />
+            {/* Badge positionné dynamiquement */}
+            {textWidth > 0 && <LevelUpBadge flashTrigger={flashTrigger} textWidth={textWidth} />}
           </View>
         </View>
 
