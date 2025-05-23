@@ -1,3 +1,4 @@
+// src/app/(app)/home.tsx
 import { View, ActivityIndicator, ScrollView, RefreshControl } from 'react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,6 +7,7 @@ import { StepsDisplay } from '@/features/steps/components/steps-display';
 import { useSteps } from '@/features/steps/hooks/use-steps-health-api';
 import { useStepAnimation } from '@/features/steps/hooks/use-steps-animation';
 import { getErrorMessage } from '@/utils/error-utils';
+import { getLevelsGained } from '@/features/steps/utils/level-utils';
 import { toast } from 'sonner-native';
 
 export default function HomeScreen() {
@@ -22,7 +24,7 @@ export default function HomeScreen() {
 
   const steps = devMode ? originalSteps + refreshCount * 500 : originalSteps;
 
-  const { displayedSteps, animatedProgress } = useStepAnimation(steps, previousSteps);
+  const { displayedSteps, animatedProgress, levelInfo } = useStepAnimation(steps, previousSteps);
 
   const showSyncNotification = (newSteps: number, oldSteps: number, hasError: boolean) => {
     if (hasError) {
@@ -34,6 +36,7 @@ export default function HomeScreen() {
     }
 
     const stepsDiff = newSteps - oldSteps;
+    const levelsGained = getLevelsGained(oldSteps, newSteps);
 
     if (stepsDiff > 0) {
       toast.success(`${stepsDiff} steps added!`, {
@@ -48,6 +51,13 @@ export default function HomeScreen() {
       toast('No more step to add', {
         description: 'Your steps are up to date',
         duration: 3000,
+      });
+    }
+    if (levelsGained > 0) {
+      // Notification spéciale pour le passage de niveau
+      toast.success(`🎉 Level Up!`, {
+        description: `You reached level ${levelInfo.currentLevel}!`,
+        duration: 5000,
       });
     }
   };
@@ -128,7 +138,6 @@ export default function HomeScreen() {
             colors={['#FFFFFF']}
           />
         }>
-        {/* <View className="absolute left-0 right-0 top-0 z-10 items-center py-2"> */}
         <View className="mb-20 items-center justify-center">
           <View className="mb-20 items-center">
             <AppText className="text-sm text-slate-500">Pull down to sync your steps</AppText>
@@ -136,7 +145,6 @@ export default function HomeScreen() {
           </View>
           <AppText className="mb-10 text-3xl text-white">Today</AppText>
           <AppText className="text-5xl text-white">{displayedSteps}</AppText>
-          {/* <AppText className="text-2xl text-white">&#129406;</AppText> */}
           <AppText className="text-base text-slate-300">
             {displayedSteps > 0 ? 'steps' : 'step'}
           </AppText>
@@ -152,6 +160,7 @@ export default function HomeScreen() {
             displayedSteps={displayedSteps}
             animatedProgress={animatedProgress}
             yesterdaySteps={yesterdaySteps}
+            levelInfo={levelInfo}
             devMode={devMode}
             setDevMode={setDevMode}
             resetDevCounter={resetDevCounter}

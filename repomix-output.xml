@@ -71,6 +71,7 @@ src/features/steps/components/dev-controls.tsx
 src/features/steps/components/steps-display.tsx
 src/features/steps/hooks/use-steps-animation.ts
 src/features/steps/hooks/use-steps-health-api.ts
+src/features/steps/utils/level-utils.ts
 src/services/leaderboard.ts
 src/utils/date-utils.ts
 src/utils/error-utils.ts
@@ -80,500 +81,6 @@ tsconfig.json
 
 <files>
 This section contains the contents of the repository's files.
-
-<file path="src/features/leaderboard/components/leaderboard-item.tsx">
-import { View, Text } from 'react-native';
-
-interface LeaderboardItemProps {
-  rank: number;
-  user: string;
-  steps: number;
-  isCurrentUser: boolean;
-}
-
-export default function LeaderboardItem({
-  rank,
-  user,
-  steps,
-  isCurrentUser,
-}: LeaderboardItemProps) {
-  return (
-    <View
-      className={`mx-2 my-1 flex-row items-center justify-between rounded-lg p-4 ${isCurrentUser ? 'bg-blue-900' : 'bg-gray-800'}`}>
-      <View className="flex-row items-center">
-        <View
-          className={`h-8 w-8 items-center justify-center rounded-full ${getRankBackgroundColor(rank)}`}>
-          <Text className="font-dotgothic font-bold text-white">{rank}</Text>
-        </View>
-
-        <Text className="ml-3 font-dotgothic text-lg text-white">
-          {user} {isCurrentUser && '👤'}
-        </Text>
-      </View>
-
-      <Text className="font-dotgothic text-xl text-white">{steps}</Text>
-    </View>
-  );
-}
-
-function getRankBackgroundColor(rank: number): string {
-  switch (rank) {
-    case 1:
-      return 'bg-yellow-500'; // Or
-    case 2:
-      return 'bg-gray-400'; // Argent
-    case 3:
-      return 'bg-yellow-700'; // Bronze
-    default:
-      return 'bg-gray-700'; // Autres rangs
-  }
-}
-</file>
-
-<file path="src/features/leaderboard/hooks/use-leaderboard.ts">
-import { useState, useEffect } from 'react';
-import { getLeaderboard, getCurrentUserRank } from '../../../services/leaderboard';
-
-interface LeaderboardUser {
-  id: string;
-  name: string;
-  steps: number;
-}
-
-export default function useLeaderboard() {
-  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
-  const [currentUserRank, setCurrentUserRank] = useState<LeaderboardUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchLeaderboard = async () => {
-      setIsLoading(true);
-      try {
-        // Dans un vrai scénario, ces données viendraient d'une API
-        // Pour l'instant, on utilise des données fictives
-        const leaderboardData = await getLeaderboard();
-        const userRank = await getCurrentUserRank();
-
-        setLeaderboard(leaderboardData);
-        setCurrentUserRank(userRank);
-      } catch (error) {
-        console.error('Erreur lors de la récupération du classement:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchLeaderboard();
-  }, []);
-
-  return { leaderboard, isLoading, currentUserRank };
-}
-</file>
-
-<file path="src/features/steps/components/dev-controls.tsx">
-import React from 'react';
-import { TouchableOpacity } from 'react-native';
-import { AppText } from '@/components/app-text';
-
-interface DevControlsProps {
-  devMode: boolean;
-  setDevMode: (mode: boolean) => void;
-  resetDevCounter: () => void;
-}
-
-export const DevControls: React.FC<DevControlsProps> = ({
-  devMode,
-  setDevMode,
-  resetDevCounter,
-}) => {
-  return (
-    <>
-      <TouchableOpacity
-        className="mt-6 rounded-lg bg-gray-800 p-3"
-        onPress={() => setDevMode(!devMode)}>
-        <AppText className="text-white">
-          {devMode ? 'Mode Dev: ON (+500 pas/refresh)' : 'Mode Dev: OFF'}
-        </AppText>
-      </TouchableOpacity>
-
-      {devMode && (
-        <TouchableOpacity className="mt-3 rounded-lg bg-red-800 p-3" onPress={resetDevCounter}>
-          <AppText className="text-white">Reset Dev Counter</AppText>
-        </TouchableOpacity>
-      )}
-    </>
-  );
-};
-</file>
-
-<file path="src/features/steps/components/steps-display.tsx">
-import React from 'react';
-import { View } from 'react-native';
-import { SharedValue } from 'react-native-reanimated';
-import { AppText } from '@/components/app-text';
-import { ProgressBar } from '@/components/ui/progress-bar';
-import { DevControls } from './dev-controls';
-
-interface StepsDisplayProps {
-  displayedSteps: number;
-  animatedProgress: SharedValue<number>;
-  yesterdaySteps: number;
-  devMode: boolean;
-  setDevMode: (mode: boolean) => void;
-  resetDevCounter: () => void;
-}
-
-export const StepsDisplay: React.FC<StepsDisplayProps> = ({
-  displayedSteps,
-  animatedProgress,
-  yesterdaySteps,
-  devMode,
-  setDevMode,
-  resetDevCounter,
-}) => {
-  return (
-    <>
-      <View className="flex-1 items-center">
-        <View className="items-center">
-          <AppText className="mb-5 text-2xl text-white">Lv 0</AppText>
-          {/* ↑ */}
-          {/* <AppText className="mb-5 text-3xl text-white">{displayedSteps}</AppText> */}
-        </View>
-        <View className="w-1/2">
-          <AppText className="text-base text-white">next level</AppText>
-
-          <ProgressBar
-            progress={animatedProgress}
-            maxValue={8000}
-            width="100%"
-            height={12}
-            outerBorderWidth={2}
-            innerBorderWidth={2}
-            outerBorderColor="#ffffff"
-            innerBorderColor="#000000"
-            backgroundColor="#333333"
-            fillColor="#fecdd3"
-          />
-        </View>
-
-        {/* <DevControls devMode={devMode} setDevMode={setDevMode} resetDevCounter={resetDevCounter} /> */}
-      </View>
-
-      <View className="w-full items-center pb-10">
-        <AppText className="text-lg text-white">{`Yesterday: ${yesterdaySteps}`}</AppText>
-      </View>
-    </>
-  );
-};
-</file>
-
-<file path="src/features/steps/hooks/use-steps-animation.ts">
-import { useEffect, useState } from 'react';
-import { useSharedValue, withTiming, withDelay, Easing } from 'react-native-reanimated';
-
-export const useStepAnimation = (currentSteps: number, previousSteps: number = 0) => {
-  const [displayedSteps, setDisplayedSteps] = useState(previousSteps);
-
-  // Valeurs animées pour le compteur et la barre de progression
-  const animatedStepsValue = useSharedValue(previousSteps);
-  const animatedProgress = useSharedValue(previousSteps);
-
-  // Animation lorsque les pas changent
-  useEffect(() => {
-    if (currentSteps > 0) {
-      // Animation de la barre de progression
-      animatedProgress.value = withDelay(
-        300,
-        withTiming(currentSteps, {
-          duration: 500,
-          easing: Easing.out(Easing.cubic),
-        })
-      );
-
-      // Animation du compteur de pas
-      animatedStepsValue.value = withDelay(
-        300,
-        withTiming(currentSteps, {
-          duration: 800,
-          easing: Easing.out(Easing.cubic),
-        })
-      );
-
-      console.log(`Animation démarrée: de ${previousSteps} à ${currentSteps}`);
-    }
-  }, [currentSteps, previousSteps]);
-
-  // Mise à jour de l'affichage selon la valeur animée
-  useEffect(() => {
-    const updateDisplayedSteps = () => {
-      const valueToDisplay = Math.round(animatedStepsValue.value);
-      setDisplayedSteps(valueToDisplay);
-    };
-
-    const intervalId = setInterval(updateDisplayedSteps, 16); // ~60fps
-    return () => clearInterval(intervalId);
-  }, [animatedStepsValue.value]);
-
-  return {
-    displayedSteps,
-    animatedStepsValue,
-    animatedProgress,
-  };
-};
-</file>
-
-<file path="src/features/steps/hooks/use-steps-health-api.ts">
-import { useEffect, useState } from 'react';
-import { initialize, requestPermission, readRecords } from 'react-native-health-connect';
-import { TimeRangeFilter } from 'react-native-health-connect/lib/typescript/types/base.types';
-import { Platform } from 'react-native';
-
-type StepsBySource = {
-  [key: string]: number;
-};
-
-export const useSteps = (selectedDate: Date = new Date()) => {
-  const [steps, setSteps] = useState(0);
-  const [yesterdaySteps, setYesterdaySteps] = useState(0);
-  const [stepsBySource, setStepsBySource] = useState<StepsBySource>({});
-  const [selectedSource, setSelectedSource] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Fonction pour calculer le nombre total de pas à partir d'une réponse Health Connect
-  const calculateTotalSteps = (
-    response: any
-  ): { maxSteps: number; maxSource: string; stepsBySource: StepsBySource } => {
-    if (!response || !response.records || response.records.length === 0) {
-      return { maxSteps: 0, maxSource: '', stepsBySource: {} };
-    }
-
-    // Grouper par source
-    const sourcesMap: StepsBySource = {};
-    response.records.forEach((record: any) => {
-      const source = record.metadata?.dataOrigin || 'inconnu';
-      if (!sourcesMap[source]) {
-        sourcesMap[source] = 0;
-      }
-      sourcesMap[source] += record.count;
-    });
-
-    // Trouver la source avec le plus grand nombre de pas
-    let maxSteps = 0;
-    let maxSource = '';
-
-    Object.entries(sourcesMap).forEach(([source, count]) => {
-      if (count > maxSteps) {
-        maxSteps = count;
-        maxSource = source;
-      }
-    });
-
-    return { maxSteps, maxSource, stepsBySource: sourcesMap };
-  };
-
-  const getStepsForDate = async (date: Date) => {
-    // Créer la plage de temps pour la date (de minuit à minuit)
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    // Filtre de temps pour la journée
-    const timeRangeFilter: TimeRangeFilter = {
-      operator: 'between',
-      startTime: startOfDay.toISOString(),
-      endTime: endOfDay.toISOString(),
-    };
-
-    // Lecture des enregistrements de pas
-    try {
-      const stepsResponse = await readRecords('Steps', { timeRangeFilter });
-      return stepsResponse;
-    } catch (error) {
-      console.error(`Erreur lors de la récupération des pas pour ${date.toDateString()}:`, error);
-      return null;
-    }
-  };
-
-  // Fonction pour charger les données de santé
-  const loadHealthData = async (date: Date) => {
-    if (Platform.OS !== 'android') {
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Initialisation du client Health Connect
-      const isInitialized = await initialize();
-      if (!isInitialized) {
-        console.log('Failed to initialize Health Connect');
-        setIsLoading(false);
-        return;
-      }
-
-      // Demande permission pour les pas
-      const grantedPermissions = await requestPermission([
-        { accessType: 'read', recordType: 'Steps' },
-      ]);
-
-      // Vérifie si la permission pour les pas a été accordée
-      const hasStepsPermission = grantedPermissions.some((perm) => perm.recordType === 'Steps');
-
-      if (!hasStepsPermission) {
-        console.log('No permission for Steps');
-        setIsLoading(false);
-        return;
-      }
-
-      // POUR TESTS: Décommentez et modifiez ces lignes pour tester avec des dates spécifiques
-      /*
-      // Test: Définir une plage de dates personnalisée pour le jour actuel
-      const customStartDate = new Date('2024-05-08T00:00:00'); // Format YYYY-MM-DDTHH:MM:SS
-      const customEndDate = new Date('2024-05-08T23:59:59');   // Format YYYY-MM-DDTHH:MM:SS
-      
-      // Remplacez date par customStartDate dans les appels ci-dessous
-      // Et utilisez ces dates pour les tests
-      console.log('Test: Plage de dates personnalisée', {
-        start: customStartDate.toLocaleString(),
-        end: customEndDate.toLocaleString()
-      });
-      */
-
-      // 1. Récupérer les pas pour la date sélectionnée
-      const todayResponse = await getStepsForDate(date);
-      const { maxSteps, maxSource, stepsBySource: sourcesMap } = calculateTotalSteps(todayResponse);
-
-      // 2. Récupérer les pas pour la veille
-      const yesterday = new Date(date);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayResponse = await getStepsForDate(yesterday);
-      const { maxSteps: yesterdayMaxSteps } = calculateTotalSteps(yesterdayResponse);
-
-      // Mettre à jour l'état
-      setSteps(maxSteps);
-      setYesterdaySteps(yesterdayMaxSteps);
-      setStepsBySource(sourcesMap);
-      setSelectedSource(maxSource);
-    } catch (error) {
-      console.error('Erreur:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // useEffect(() => {
-  //   loadHealthData(selectedDate);
-  // }, [selectedDate]);
-
-  // Fonction pour obtenir un nom convivial pour une source
-  // const getSourceDisplayName = (source: string): string => {
-  //   return sourceDisplayNames[source] || source;
-  // };
-
-  // Fonction pour formater une date
-  const formatDate = (date: Date): string => {
-    return date.toLocaleDateString('fr-FR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-    });
-  };
-
-  return {
-    steps,
-    yesterdaySteps,
-    stepsBySource,
-    selectedSource,
-    //getSourceDisplayName,
-    isLoading,
-    loadHealthData,
-    formatDate,
-  };
-};
-</file>
-
-<file path="src/utils/date-utils.ts">
-/**
- * Vérifie si la date fournie est aujourd'hui
- * @param date Date à vérifier
- * @returns Vrai si la date est aujourd'hui, faux sinon
- */
-export const isToday = (date: Date): boolean => {
-  const today = new Date();
-  return (
-    date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear()
-  );
-};
-
-/**
- * Formate une date dans un format lisible en français
- * @param date Date à formater
- * @returns Chaîne formatée (ex: "lundi 10 mai")
- */
-export const formatDate = (date: Date): string => {
-  return date.toLocaleDateString('fr-FR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });
-};
-
-/**
- * Obtient la date d'hier
- * @param date Date de référence (aujourd'hui par défaut)
- * @returns Une nouvelle date représentant hier
- */
-export const getYesterday = (date: Date = new Date()): Date => {
-  const yesterday = new Date(date);
-  yesterday.setDate(yesterday.getDate() - 1);
-  return yesterday;
-};
-</file>
-
-<file path="src/utils/error-utils.ts">
-export const getErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  if (typeof error === 'string') {
-    return error;
-  }
-  if (error && typeof error === 'object' && 'message' in error) {
-    return String(error.message);
-  }
-  return 'Unknown error';
-};
-</file>
-
-<file path=".gitignore">
-node_modules/
-.expo/
-dist/
-npm-debug.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-*.orig.*
-web-build/
-
-
-
-
-ios
-android
-
-# macOS
-.DS_Store
-
-# Temporary files created by Metro to check the health of the file watcher
-.metro-health-check*
-</file>
 
 <file path="androidManifestPlugin.js">
 const { withAndroidManifest } = require('@expo/config-plugins');
@@ -710,84 +217,6 @@ module.exports = {
 };
 </file>
 
-<file path="src/app/_layout.tsx">
-//import { ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import React from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import '../../global.css';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Toaster } from 'sonner-native';
-
-// import { APIProvider } from '@/api';
-// import { useThemeConfig } from '@/lib';
-
-export { ErrorBoundary } from 'expo-router';
-
-export const unstable_settings = {
-  initialRouteName: '(app)',
-};
-
-// Empêcher l'écran de démarrage de se cacher automatiquement
-SplashScreen.preventAutoHideAsync();
-
-export default function RootLayout() {
-  return (
-    <>
-      <StatusBar style="auto" />
-      <SafeAreaProvider>
-        <GestureHandlerRootView>
-          <Stack>
-            <Stack.Screen name="(app)" options={{ headerShown: false }} />
-          </Stack>
-          <Toaster
-            position="bottom-center"
-            swipeToDismissDirection="up"
-            closeButton={true}
-            toastOptions={{
-              style: {
-                backgroundColor: '#111111',
-                borderWidth: 1,
-                borderColor: '#FFFFFF',
-                borderRadius: 8,
-                // shadowColor: '#000000',
-                // shadowOffset: { width: 0, height: 2 },
-                // shadowOpacity: 0.8,
-                // shadowRadius: 4,
-                elevation: 5, // Pour Android
-              },
-              titleStyle: {
-                color: '#FFFFFF',
-                fontFamily: 'DotGothic16_400Regular', // Utilisez votre police pixel
-                fontSize: 16,
-              },
-              descriptionStyle: {
-                color: '#CCCCCC',
-                fontFamily: 'DotGothic16_400Regular',
-                fontSize: 14,
-              },
-            }}
-          />
-        </GestureHandlerRootView>
-      </SafeAreaProvider>
-    </>
-  );
-}
-
-// function Providers({ children }) {
-//   return <View style={styles.container}>{children}</View>;
-// }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
-</file>
-
 <file path="src/app/(app)/_layout.tsx">
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -833,222 +262,6 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
-  );
-}
-</file>
-
-<file path="src/app/(app)/home.tsx">
-import { View, ActivityIndicator, ScrollView, RefreshControl } from 'react-native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppText } from '@/components/app-text';
-import { StepsDisplay } from '@/features/steps/components/steps-display';
-import { useSteps } from '@/features/steps/hooks/use-steps-health-api';
-import { useStepAnimation } from '@/features/steps/hooks/use-steps-animation';
-import { getErrorMessage } from '@/utils/error-utils';
-import { toast } from 'sonner-native';
-
-export default function HomeScreen() {
-  const [refreshing, setRefreshing] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
-  const [previousSteps, setPreviousSteps] = useState(0);
-  const [devMode, setDevMode] = useState(false);
-  const [refreshCount, setRefreshCount] = useState(0);
-  const [syncError, setSyncError] = useState<string | null>(null);
-
-  const today = useMemo(() => new Date(), []);
-
-  const { steps: originalSteps, yesterdaySteps, isLoading, loadHealthData } = useSteps(today);
-
-  const steps = devMode ? originalSteps + refreshCount * 500 : originalSteps;
-
-  const { displayedSteps, animatedProgress } = useStepAnimation(steps, previousSteps);
-
-  const showSyncNotification = (newSteps: number, oldSteps: number, hasError: boolean) => {
-    if (hasError) {
-      toast.error('Sync failed', {
-        description: 'Unable to sync your steps',
-        duration: 4000,
-      });
-      return;
-    }
-
-    const stepsDiff = newSteps - oldSteps;
-
-    if (stepsDiff > 0) {
-      toast.success(`${stepsDiff} steps added!`, {
-        duration: 3000,
-      });
-    } else if (oldSteps === 0 && newSteps === 0) {
-      toast('No step to add', {
-        description: 'Start walking to track your steps',
-        duration: 3000,
-      });
-    } else {
-      toast('No more step to add', {
-        description: 'Your steps are up to date',
-        duration: 3000,
-      });
-    }
-  };
-
-  const resetDevCounter = () => {
-    setRefreshCount(0);
-    setPreviousSteps(originalSteps);
-    console.log('Compteur développement réinitialisé');
-  };
-
-  // Préparation avant rafraîchissement des données
-  const handleBeforeRefresh = useCallback(() => {
-    setPreviousSteps(steps);
-  }, [steps]);
-
-  // Chargement initial des données
-  const handleLoadData = useCallback(async () => {
-    handleBeforeRefresh();
-    try {
-      setSyncError(null);
-      await loadHealthData(today);
-      setDataLoaded(true);
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      setSyncError(errorMessage);
-      console.error('Error loading initial data:', error);
-    }
-  }, [loadHealthData, today, handleBeforeRefresh]);
-
-  // Gestion du rafraîchissement par pull-to-refresh
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    const oldSteps = steps; // Capturer les pas avant le refresh
-    handleBeforeRefresh();
-
-    try {
-      setSyncError(null);
-      await loadHealthData(today);
-      setDataLoaded(true);
-
-      // En mode développement, incrémenter le compteur de refreshes
-      if (devMode) {
-        setRefreshCount((prev) => prev + 1);
-      }
-
-      // Afficher la notification après la synchronisation réussie
-      // On utilise une petite attente pour que les états soient mis à jour
-      setTimeout(() => {
-        const newSteps = devMode ? originalSteps + (refreshCount + 1) * 500 : originalSteps;
-        showSyncNotification(newSteps, oldSteps, false);
-      }, 100);
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      setSyncError(errorMessage);
-      showSyncNotification(0, 0, true);
-      console.error('Error during refresh:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [loadHealthData, today, handleBeforeRefresh, devMode, steps, originalSteps, refreshCount]);
-
-  // Charger les données au démarrage
-  useEffect(() => {
-    if (!dataLoaded && !isLoading) {
-      handleLoadData();
-    }
-  }, [dataLoaded, isLoading, handleLoadData]);
-
-  return (
-    <SafeAreaView className="flex-1 bg-black">
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            progressBackgroundColor="#000"
-            colors={['#FFFFFF']}
-          />
-        }>
-        {/* <View className="absolute left-0 right-0 top-0 z-10 items-center py-2"> */}
-        <View className="mb-20 items-center justify-center">
-          <View className="mb-20 items-center">
-            <AppText className="text-sm text-slate-500">Pull down to sync your steps</AppText>
-            <AppText className="text-sm text-slate-500">↓</AppText>
-          </View>
-          <AppText className="mb-10 text-3xl text-white">Today</AppText>
-          <AppText className="text-5xl text-white">{displayedSteps}</AppText>
-          {/* <AppText className="text-2xl text-white">&#129406;</AppText> */}
-          <AppText className="text-base text-slate-300">
-            {displayedSteps > 0 ? 'steps' : 'step'}
-          </AppText>
-        </View>
-
-        {isLoading && !refreshing ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#FFFFFF" />
-            <AppText className="mt-3 text-white">Chargement des données...</AppText>
-          </View>
-        ) : (
-          <StepsDisplay
-            displayedSteps={displayedSteps}
-            animatedProgress={animatedProgress}
-            yesterdaySteps={yesterdaySteps}
-            devMode={devMode}
-            setDevMode={setDevMode}
-            resetDevCounter={resetDevCounter}
-          />
-        )}
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-</file>
-
-<file path="src/app/(app)/leaderboard.tsx">
-import { View, Text, FlatList, ActivityIndicator } from 'react-native';
-import { useFonts, DotGothic16_400Regular } from '@expo-google-fonts/dotgothic16';
-import useLeaderboard from '@/features/leaderboard/hooks/use-leaderboard';
-import LeaderboardItem from '@/features/leaderboard/components/leaderboard-item';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-export default function LeaderboardScreen() {
-  const [fontsLoaded] = useFonts({
-    DotGothic16_400Regular,
-  });
-
-  const { leaderboard, isLoading, currentUserRank } = useLeaderboard();
-
-  if (!fontsLoaded) {
-    return null;
-  }
-
-  return (
-    <SafeAreaView className="flex-1 bg-black">
-      <Text className="my-4 text-center font-dotgothic text-2xl text-white">Classement</Text>
-
-      {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#FFFFFF" />
-        </View>
-      ) : (
-        <FlatList
-          data={leaderboard}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => (
-            <LeaderboardItem
-              rank={index + 1}
-              user={item.name}
-              steps={item.steps}
-              isCurrentUser={item.id === currentUserRank?.id}
-            />
-          )}
-          ListEmptyComponent={
-            <Text className="p-4 text-center font-dotgothic text-white">
-              Aucune donnée de classement disponible
-            </Text>
-          }
-        />
-      )}
-    </SafeAreaView>
   );
 }
 </file>
@@ -1401,6 +614,532 @@ export const ProgressBar: React.FC<PixelProgressBarProps> = ({
 };
 </file>
 
+<file path="src/features/leaderboard/components/leaderboard-item.tsx">
+import { View, Text } from 'react-native';
+
+interface LeaderboardItemProps {
+  rank: number;
+  user: string;
+  steps: number;
+  isCurrentUser: boolean;
+}
+
+export default function LeaderboardItem({
+  rank,
+  user,
+  steps,
+  isCurrentUser,
+}: LeaderboardItemProps) {
+  return (
+    <View
+      className={`mx-2 my-1 flex-row items-center justify-between rounded-lg p-4 ${isCurrentUser ? 'bg-blue-900' : 'bg-gray-800'}`}>
+      <View className="flex-row items-center">
+        <View
+          className={`h-8 w-8 items-center justify-center rounded-full ${getRankBackgroundColor(rank)}`}>
+          <Text className="font-dotgothic font-bold text-white">{rank}</Text>
+        </View>
+
+        <Text className="ml-3 font-dotgothic text-lg text-white">
+          {user} {isCurrentUser && '👤'}
+        </Text>
+      </View>
+
+      <Text className="font-dotgothic text-xl text-white">{steps}</Text>
+    </View>
+  );
+}
+
+function getRankBackgroundColor(rank: number): string {
+  switch (rank) {
+    case 1:
+      return 'bg-yellow-500'; // Or
+    case 2:
+      return 'bg-gray-400'; // Argent
+    case 3:
+      return 'bg-yellow-700'; // Bronze
+    default:
+      return 'bg-gray-700'; // Autres rangs
+  }
+}
+</file>
+
+<file path="src/features/leaderboard/hooks/use-leaderboard.ts">
+import { useState, useEffect } from 'react';
+import { getLeaderboard, getCurrentUserRank } from '../../../services/leaderboard';
+
+interface LeaderboardUser {
+  id: string;
+  name: string;
+  steps: number;
+}
+
+export default function useLeaderboard() {
+  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
+  const [currentUserRank, setCurrentUserRank] = useState<LeaderboardUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      setIsLoading(true);
+      try {
+        // Dans un vrai scénario, ces données viendraient d'une API
+        // Pour l'instant, on utilise des données fictives
+        const leaderboardData = await getLeaderboard();
+        const userRank = await getCurrentUserRank();
+
+        setLeaderboard(leaderboardData);
+        setCurrentUserRank(userRank);
+      } catch (error) {
+        console.error('Erreur lors de la récupération du classement:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+  }, []);
+
+  return { leaderboard, isLoading, currentUserRank };
+}
+</file>
+
+<file path="src/features/steps/components/dev-controls.tsx">
+import React from 'react';
+import { TouchableOpacity } from 'react-native';
+import { AppText } from '@/components/app-text';
+
+interface DevControlsProps {
+  devMode: boolean;
+  setDevMode: (mode: boolean) => void;
+  resetDevCounter: () => void;
+}
+
+export const DevControls: React.FC<DevControlsProps> = ({
+  devMode,
+  setDevMode,
+  resetDevCounter,
+}) => {
+  return (
+    <>
+      <TouchableOpacity
+        className="mt-6 rounded-lg bg-gray-800 p-3"
+        onPress={() => setDevMode(!devMode)}>
+        <AppText className="text-white">
+          {devMode ? 'Mode Dev: ON (+500 pas/refresh)' : 'Mode Dev: OFF'}
+        </AppText>
+      </TouchableOpacity>
+
+      {devMode && (
+        <TouchableOpacity className="mt-3 rounded-lg bg-red-800 p-3" onPress={resetDevCounter}>
+          <AppText className="text-white">Reset Dev Counter</AppText>
+        </TouchableOpacity>
+      )}
+    </>
+  );
+};
+</file>
+
+<file path="src/features/steps/components/steps-display.tsx">
+import React from 'react';
+import { View } from 'react-native';
+import { SharedValue } from 'react-native-reanimated';
+import { AppText } from '@/components/app-text';
+import { ProgressBar } from '@/components/ui/progress-bar';
+import { DevControls } from './dev-controls';
+import { LevelInfo } from '../utils/level-utils';
+
+interface StepsDisplayProps {
+  displayedSteps: number;
+  animatedProgress: SharedValue<number>;
+  yesterdaySteps: number;
+  levelInfo: LevelInfo;
+  devMode: boolean;
+  setDevMode: (mode: boolean) => void;
+  resetDevCounter: () => void;
+}
+
+export const StepsDisplay: React.FC<StepsDisplayProps> = ({
+  displayedSteps,
+  animatedProgress,
+  yesterdaySteps,
+  levelInfo,
+  devMode,
+  setDevMode,
+  resetDevCounter,
+}) => {
+  return (
+    <>
+      <View className="flex-1 items-center">
+        <View className="items-center">
+          <AppText className="mb-5 text-2xl text-white">Lv {levelInfo.currentLevel}</AppText>
+          {/* ↑ */}
+          {/* <AppText className="mb-5 text-3xl text-white">{displayedSteps}</AppText> */}
+        </View>
+        <View className="w-1/2">
+          <AppText className="text-base text-white">next level</AppText>
+
+          <ProgressBar
+            progress={animatedProgress}
+            maxValue={levelInfo.totalStepsForCurrentLevel}
+            width="100%"
+            height={12}
+            outerBorderWidth={2}
+            innerBorderWidth={2}
+            outerBorderColor="#ffffff"
+            innerBorderColor="#000000"
+            backgroundColor="#333333"
+            fillColor="#fecdd3"
+          />
+        </View>
+
+        <DevControls devMode={devMode} setDevMode={setDevMode} resetDevCounter={resetDevCounter} />
+      </View>
+
+      <View className="w-full items-center pb-10">
+        <AppText className="text-lg text-white">{`Yesterday: ${yesterdaySteps}`}</AppText>
+      </View>
+    </>
+  );
+};
+</file>
+
+<file path="src/features/steps/hooks/use-steps-animation.ts">
+// src/features/steps/hooks/use-steps-animation.ts
+import { useEffect, useState } from 'react';
+import {
+  useSharedValue,
+  withTiming,
+  withDelay,
+  withSequence,
+  Easing,
+} from 'react-native-reanimated';
+import { calculateLevelInfo, hasLeveledUp, LevelInfo } from '../utils/level-utils';
+
+export const useStepAnimation = (currentSteps: number, previousSteps: number = 0) => {
+  const [displayedSteps, setDisplayedSteps] = useState(previousSteps);
+  const [levelInfo, setLevelInfo] = useState<LevelInfo>(calculateLevelInfo(previousSteps));
+
+  // Valeurs animées pour le compteur et la barre de progression
+  const animatedStepsValue = useSharedValue(previousSteps);
+  const animatedProgress = useSharedValue(calculateLevelInfo(previousSteps).progressInCurrentLevel);
+
+  // Animation lorsque les pas changent
+  useEffect(() => {
+    if (currentSteps > 0) {
+      const currentLevelInfo = calculateLevelInfo(currentSteps);
+      const previousLevelInfo = calculateLevelInfo(previousSteps);
+      const leveledUp = hasLeveledUp(previousSteps, currentSteps);
+
+      // Mettre à jour les informations de niveau
+      setLevelInfo(currentLevelInfo);
+
+      if (leveledUp) {
+        // Animation spéciale pour le passage de niveau
+        // 1. Remplir la barre jusqu'à 1000 (fin du niveau précédent)
+        // 2. Réinitialiser la barre à 0
+        // 3. Remplir jusqu'à la nouvelle progression
+        animatedProgress.value = withSequence(
+          // Étape 1: Remplir jusqu'à 1000 (fin du niveau)
+          withTiming(1000, {
+            duration: 300,
+            easing: Easing.out(Easing.cubic),
+          }),
+          // Étape 2: Petite pause pour montrer le niveau complet
+          withDelay(150, withTiming(1000, { duration: 0 })),
+          // Étape 3: Réinitialiser à 0 (nouveau niveau)
+          withTiming(0, {
+            duration: 200,
+            easing: Easing.inOut(Easing.cubic),
+          }),
+          // Étape 4: Remplir jusqu'à la nouvelle progression
+          withTiming(currentLevelInfo.progressInCurrentLevel, {
+            duration: 500,
+            easing: Easing.out(Easing.cubic),
+          })
+        );
+      } else {
+        // Animation normale (pas de changement de niveau)
+        animatedProgress.value = withDelay(
+          300,
+          withTiming(currentLevelInfo.progressInCurrentLevel, {
+            duration: 500,
+            easing: Easing.out(Easing.cubic),
+          })
+        );
+      }
+
+      // Animation du compteur de pas (inchangée)
+      animatedStepsValue.value = withDelay(
+        300,
+        withTiming(currentSteps, {
+          duration: 800,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
+
+      console.log(`Animation démarrée: de ${previousSteps} à ${currentSteps}`, {
+        leveledUp,
+        previousLevel: previousLevelInfo.currentLevel,
+        currentLevel: currentLevelInfo.currentLevel,
+        progressInLevel: currentLevelInfo.progressInCurrentLevel,
+      });
+    }
+  }, [currentSteps, previousSteps]);
+
+  // Mise à jour de l'affichage selon la valeur animée
+  useEffect(() => {
+    const updateDisplayedSteps = () => {
+      const valueToDisplay = Math.round(animatedStepsValue.value);
+      setDisplayedSteps(valueToDisplay);
+    };
+
+    const intervalId = setInterval(updateDisplayedSteps, 16); // ~60fps
+    return () => clearInterval(intervalId);
+  }, [animatedStepsValue.value]);
+
+  return {
+    displayedSteps,
+    animatedStepsValue,
+    animatedProgress,
+    levelInfo, // Nouvelles informations de niveau
+  };
+};
+</file>
+
+<file path="src/features/steps/hooks/use-steps-health-api.ts">
+import { useEffect, useState } from 'react';
+import { initialize, requestPermission, readRecords } from 'react-native-health-connect';
+import { TimeRangeFilter } from 'react-native-health-connect/lib/typescript/types/base.types';
+import { Platform } from 'react-native';
+
+type StepsBySource = {
+  [key: string]: number;
+};
+
+export const useSteps = (selectedDate: Date = new Date()) => {
+  const [steps, setSteps] = useState(0);
+  const [yesterdaySteps, setYesterdaySteps] = useState(0);
+  const [stepsBySource, setStepsBySource] = useState<StepsBySource>({});
+  const [selectedSource, setSelectedSource] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fonction pour calculer le nombre total de pas à partir d'une réponse Health Connect
+  const calculateTotalSteps = (
+    response: any
+  ): { maxSteps: number; maxSource: string; stepsBySource: StepsBySource } => {
+    if (!response || !response.records || response.records.length === 0) {
+      return { maxSteps: 0, maxSource: '', stepsBySource: {} };
+    }
+
+    // Grouper par source
+    const sourcesMap: StepsBySource = {};
+    response.records.forEach((record: any) => {
+      const source = record.metadata?.dataOrigin || 'inconnu';
+      if (!sourcesMap[source]) {
+        sourcesMap[source] = 0;
+      }
+      sourcesMap[source] += record.count;
+    });
+
+    // Trouver la source avec le plus grand nombre de pas
+    let maxSteps = 0;
+    let maxSource = '';
+
+    Object.entries(sourcesMap).forEach(([source, count]) => {
+      if (count > maxSteps) {
+        maxSteps = count;
+        maxSource = source;
+      }
+    });
+
+    return { maxSteps, maxSource, stepsBySource: sourcesMap };
+  };
+
+  const getStepsForDate = async (date: Date) => {
+    // Créer la plage de temps pour la date (de minuit à minuit)
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Filtre de temps pour la journée
+    const timeRangeFilter: TimeRangeFilter = {
+      operator: 'between',
+      startTime: startOfDay.toISOString(),
+      endTime: endOfDay.toISOString(),
+    };
+
+    // Lecture des enregistrements de pas
+    try {
+      const stepsResponse = await readRecords('Steps', { timeRangeFilter });
+      return stepsResponse;
+    } catch (error) {
+      console.error(`Erreur lors de la récupération des pas pour ${date.toDateString()}:`, error);
+      return null;
+    }
+  };
+
+  // Fonction pour charger les données de santé
+  const loadHealthData = async (date: Date) => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Initialisation du client Health Connect
+      const isInitialized = await initialize();
+      if (!isInitialized) {
+        console.log('Failed to initialize Health Connect');
+        setIsLoading(false);
+        return;
+      }
+
+      // Demande permission pour les pas
+      const grantedPermissions = await requestPermission([
+        { accessType: 'read', recordType: 'Steps' },
+      ]);
+
+      // Vérifie si la permission pour les pas a été accordée
+      const hasStepsPermission = grantedPermissions.some((perm) => perm.recordType === 'Steps');
+
+      if (!hasStepsPermission) {
+        console.log('No permission for Steps');
+        setIsLoading(false);
+        return;
+      }
+
+      // POUR TESTS: Décommentez et modifiez ces lignes pour tester avec des dates spécifiques
+      /*
+      // Test: Définir une plage de dates personnalisée pour le jour actuel
+      const customStartDate = new Date('2024-05-08T00:00:00'); // Format YYYY-MM-DDTHH:MM:SS
+      const customEndDate = new Date('2024-05-08T23:59:59');   // Format YYYY-MM-DDTHH:MM:SS
+      
+      // Remplacez date par customStartDate dans les appels ci-dessous
+      // Et utilisez ces dates pour les tests
+      console.log('Test: Plage de dates personnalisée', {
+        start: customStartDate.toLocaleString(),
+        end: customEndDate.toLocaleString()
+      });
+      */
+
+      // 1. Récupérer les pas pour la date sélectionnée
+      const todayResponse = await getStepsForDate(date);
+      const { maxSteps, maxSource, stepsBySource: sourcesMap } = calculateTotalSteps(todayResponse);
+
+      // 2. Récupérer les pas pour la veille
+      const yesterday = new Date(date);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayResponse = await getStepsForDate(yesterday);
+      const { maxSteps: yesterdayMaxSteps } = calculateTotalSteps(yesterdayResponse);
+
+      // Mettre à jour l'état
+      setSteps(maxSteps);
+      setYesterdaySteps(yesterdayMaxSteps);
+      setStepsBySource(sourcesMap);
+      setSelectedSource(maxSource);
+    } catch (error) {
+      console.error('Erreur:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // useEffect(() => {
+  //   loadHealthData(selectedDate);
+  // }, [selectedDate]);
+
+  // Fonction pour obtenir un nom convivial pour une source
+  // const getSourceDisplayName = (source: string): string => {
+  //   return sourceDisplayNames[source] || source;
+  // };
+
+  // Fonction pour formater une date
+  const formatDate = (date: Date): string => {
+    return date.toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+  };
+
+  return {
+    steps,
+    yesterdaySteps,
+    stepsBySource,
+    selectedSource,
+    //getSourceDisplayName,
+    isLoading,
+    loadHealthData,
+    formatDate,
+  };
+};
+</file>
+
+<file path="src/features/steps/utils/level-utils.ts">
+// src/features/steps/utils/level-utils.ts
+
+export interface LevelInfo {
+  currentLevel: number;
+  progressInCurrentLevel: number;
+  progressPercentage: number;
+  stepsToNextLevel: number;
+  totalStepsForCurrentLevel: number;
+}
+
+const STEPS_PER_LEVEL = 1000;
+
+/**
+ * Calcule les informations de niveau basées sur le nombre total de pas
+ */
+export const calculateLevelInfo = (totalSteps: number): LevelInfo => {
+  // Le niveau actuel (commence à 0)
+  const currentLevel = Math.floor(totalSteps / STEPS_PER_LEVEL);
+
+  // Les pas dans le niveau actuel (reste de la division)
+  const progressInCurrentLevel = totalSteps % STEPS_PER_LEVEL;
+
+  // Pourcentage de progression dans le niveau actuel
+  const progressPercentage = (progressInCurrentLevel / STEPS_PER_LEVEL) * 100;
+
+  // Pas nécessaires pour atteindre le niveau suivant
+  const stepsToNextLevel = STEPS_PER_LEVEL - progressInCurrentLevel;
+
+  // Total de pas nécessaires pour compléter le niveau actuel
+  const totalStepsForCurrentLevel = STEPS_PER_LEVEL;
+
+  return {
+    currentLevel,
+    progressInCurrentLevel,
+    progressPercentage,
+    stepsToNextLevel,
+    totalStepsForCurrentLevel,
+  };
+};
+
+/**
+ * Vérifie si l'utilisateur vient de passer un niveau
+ */
+export const hasLeveledUp = (previousSteps: number, currentSteps: number): boolean => {
+  const previousLevel = Math.floor(previousSteps / STEPS_PER_LEVEL);
+  const currentLevel = Math.floor(currentSteps / STEPS_PER_LEVEL);
+
+  return currentLevel > previousLevel;
+};
+
+/**
+ * Obtient le nombre de niveaux gagnés
+ */
+export const getLevelsGained = (previousSteps: number, currentSteps: number): number => {
+  const previousLevel = Math.floor(previousSteps / STEPS_PER_LEVEL);
+  const currentLevel = Math.floor(currentSteps / STEPS_PER_LEVEL);
+
+  return Math.max(0, currentLevel - previousLevel);
+};
+</file>
+
 <file path="src/services/leaderboard.ts">
 // Ce service simule des appels API pour récupérer le classement
 // Dans une application réelle, ces fonctions feraient des appels à votre backend
@@ -1454,6 +1193,87 @@ export async function updateUserSteps(steps: number): Promise<void> {
     currentUser.steps = steps;
   }
 }
+</file>
+
+<file path="src/utils/date-utils.ts">
+/**
+ * Vérifie si la date fournie est aujourd'hui
+ * @param date Date à vérifier
+ * @returns Vrai si la date est aujourd'hui, faux sinon
+ */
+export const isToday = (date: Date): boolean => {
+  const today = new Date();
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  );
+};
+
+/**
+ * Formate une date dans un format lisible en français
+ * @param date Date à formater
+ * @returns Chaîne formatée (ex: "lundi 10 mai")
+ */
+export const formatDate = (date: Date): string => {
+  return date.toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+};
+
+/**
+ * Obtient la date d'hier
+ * @param date Date de référence (aujourd'hui par défaut)
+ * @returns Une nouvelle date représentant hier
+ */
+export const getYesterday = (date: Date = new Date()): Date => {
+  const yesterday = new Date(date);
+  yesterday.setDate(yesterday.getDate() - 1);
+  return yesterday;
+};
+</file>
+
+<file path="src/utils/error-utils.ts">
+export const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String(error.message);
+  }
+  return 'Unknown error';
+};
+</file>
+
+<file path=".gitignore">
+node_modules/
+.expo/
+dist/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+repomix-output.xml
+
+
+
+ios
+android
+
+# macOS
+.DS_Store
+
+# Temporary files created by Metro to check the health of the file watcher
+.metro-health-check*
 </file>
 
 <file path="app.json">
@@ -1667,6 +1487,341 @@ module.exports = function (api) {
 };
 </file>
 
+<file path="src/app/_layout.tsx">
+//import { ThemeProvider } from '@react-navigation/native';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import React from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import '../../global.css';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Toaster } from 'sonner-native';
+
+// import { APIProvider } from '@/api';
+// import { useThemeConfig } from '@/lib';
+
+export { ErrorBoundary } from 'expo-router';
+
+export const unstable_settings = {
+  initialRouteName: '(app)',
+};
+
+// Empêcher l'écran de démarrage de se cacher automatiquement
+SplashScreen.preventAutoHideAsync();
+
+export default function RootLayout() {
+  return (
+    <>
+      <StatusBar style="auto" />
+      <SafeAreaProvider>
+        <GestureHandlerRootView>
+          <Stack>
+            <Stack.Screen name="(app)" options={{ headerShown: false }} />
+          </Stack>
+          <Toaster
+            position="bottom-center"
+            swipeToDismissDirection="up"
+            closeButton={true}
+            toastOptions={{
+              style: {
+                backgroundColor: '#111111',
+                borderWidth: 1,
+                borderColor: '#FFFFFF',
+                borderRadius: 8,
+                // shadowColor: '#000000',
+                // shadowOffset: { width: 0, height: 2 },
+                // shadowOpacity: 0.8,
+                // shadowRadius: 4,
+                elevation: 5, // Pour Android
+              },
+              titleStyle: {
+                color: '#FFFFFF',
+                fontFamily: 'DotGothic16_400Regular', // Utilisez votre police pixel
+                fontSize: 16,
+              },
+              descriptionStyle: {
+                color: '#CCCCCC',
+                fontFamily: 'DotGothic16_400Regular',
+                fontSize: 14,
+              },
+            }}
+          />
+        </GestureHandlerRootView>
+      </SafeAreaProvider>
+    </>
+  );
+}
+
+// function Providers({ children }) {
+//   return <View style={styles.container}>{children}</View>;
+// }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
+</file>
+
+<file path="src/app/(app)/home.tsx">
+// src/app/(app)/home.tsx
+import { View, ActivityIndicator, ScrollView, RefreshControl } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppText } from '@/components/app-text';
+import { StepsDisplay } from '@/features/steps/components/steps-display';
+import { useSteps } from '@/features/steps/hooks/use-steps-health-api';
+import { useStepAnimation } from '@/features/steps/hooks/use-steps-animation';
+import { getErrorMessage } from '@/utils/error-utils';
+import { getLevelsGained } from '@/features/steps/utils/level-utils';
+import { toast } from 'sonner-native';
+
+export default function HomeScreen() {
+  const [refreshing, setRefreshing] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [previousSteps, setPreviousSteps] = useState(0);
+  const [devMode, setDevMode] = useState(false);
+  const [refreshCount, setRefreshCount] = useState(0);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  const today = useMemo(() => new Date(), []);
+
+  const { steps: originalSteps, yesterdaySteps, isLoading, loadHealthData } = useSteps(today);
+
+  const steps = devMode ? originalSteps + refreshCount * 500 : originalSteps;
+
+  const { displayedSteps, animatedProgress, levelInfo } = useStepAnimation(steps, previousSteps);
+
+  const showSyncNotification = (newSteps: number, oldSteps: number, hasError: boolean) => {
+    if (hasError) {
+      toast.error('Sync failed', {
+        description: 'Unable to sync your steps',
+        duration: 4000,
+      });
+      return;
+    }
+
+    const stepsDiff = newSteps - oldSteps;
+    const levelsGained = getLevelsGained(oldSteps, newSteps);
+
+    if (levelsGained > 0) {
+      // Notification spéciale pour le passage de niveau
+      toast.success(`🎉 Level Up!`, {
+        description: `You reached level ${levelInfo.currentLevel}!`,
+        duration: 5000,
+      });
+    }
+    if (stepsDiff > 0) {
+      toast.success(`${stepsDiff} steps added!`, {
+        duration: 3000,
+      });
+    } else if (oldSteps === 0 && newSteps === 0) {
+      toast('No step to add', {
+        description: 'Start walking to track your steps',
+        duration: 3000,
+      });
+    } else {
+      toast('No more step to add', {
+        description: 'Your steps are up to date',
+        duration: 3000,
+      });
+    }
+  };
+
+  const resetDevCounter = () => {
+    setRefreshCount(0);
+    setPreviousSteps(originalSteps);
+    console.log('Compteur développement réinitialisé');
+  };
+
+  // Préparation avant rafraîchissement des données
+  const handleBeforeRefresh = useCallback(() => {
+    setPreviousSteps(steps);
+  }, [steps]);
+
+  // Chargement initial des données
+  const handleLoadData = useCallback(async () => {
+    handleBeforeRefresh();
+    try {
+      setSyncError(null);
+      await loadHealthData(today);
+      setDataLoaded(true);
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      setSyncError(errorMessage);
+      console.error('Error loading initial data:', error);
+    }
+  }, [loadHealthData, today, handleBeforeRefresh]);
+
+  // Gestion du rafraîchissement par pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    const oldSteps = steps; // Capturer les pas avant le refresh
+    handleBeforeRefresh();
+
+    try {
+      setSyncError(null);
+      await loadHealthData(today);
+      setDataLoaded(true);
+
+      // En mode développement, incrémenter le compteur de refreshes
+      if (devMode) {
+        setRefreshCount((prev) => prev + 1);
+      }
+
+      // Afficher la notification après la synchronisation réussie
+      // On utilise une petite attente pour que les états soient mis à jour
+      setTimeout(() => {
+        const newSteps = devMode ? originalSteps + (refreshCount + 1) * 500 : originalSteps;
+        showSyncNotification(newSteps, oldSteps, false);
+      }, 100);
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      setSyncError(errorMessage);
+      showSyncNotification(0, 0, true);
+      console.error('Error during refresh:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadHealthData, today, handleBeforeRefresh, devMode, steps, originalSteps, refreshCount]);
+
+  // Charger les données au démarrage
+  useEffect(() => {
+    if (!dataLoaded && !isLoading) {
+      handleLoadData();
+    }
+  }, [dataLoaded, isLoading, handleLoadData]);
+
+  return (
+    <SafeAreaView className="flex-1 bg-black">
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            progressBackgroundColor="#000"
+            colors={['#FFFFFF']}
+          />
+        }>
+        <View className="mb-20 items-center justify-center">
+          <View className="mb-20 items-center">
+            <AppText className="text-sm text-slate-500">Pull down to sync your steps</AppText>
+            <AppText className="text-sm text-slate-500">↓</AppText>
+          </View>
+          <AppText className="mb-10 text-3xl text-white">Today</AppText>
+          <AppText className="text-5xl text-white">{displayedSteps}</AppText>
+          <AppText className="text-base text-slate-300">
+            {displayedSteps > 0 ? 'steps' : 'step'}
+          </AppText>
+        </View>
+
+        {isLoading && !refreshing ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color="#FFFFFF" />
+            <AppText className="mt-3 text-white">Chargement des données...</AppText>
+          </View>
+        ) : (
+          <StepsDisplay
+            displayedSteps={displayedSteps}
+            animatedProgress={animatedProgress}
+            yesterdaySteps={yesterdaySteps}
+            levelInfo={levelInfo}
+            devMode={devMode}
+            setDevMode={setDevMode}
+            resetDevCounter={resetDevCounter}
+          />
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+</file>
+
+<file path="src/app/(app)/leaderboard.tsx">
+import { View, Text, FlatList, ActivityIndicator } from 'react-native';
+import { useFonts, DotGothic16_400Regular } from '@expo-google-fonts/dotgothic16';
+import useLeaderboard from '@/features/leaderboard/hooks/use-leaderboard';
+import LeaderboardItem from '@/features/leaderboard/components/leaderboard-item';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+export default function LeaderboardScreen() {
+  const [fontsLoaded] = useFonts({
+    DotGothic16_400Regular,
+  });
+
+  const { leaderboard, isLoading, currentUserRank } = useLeaderboard();
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
+  return (
+    <SafeAreaView className="flex-1 bg-black">
+      <Text className="my-4 text-center font-dotgothic text-2xl text-white">Classement</Text>
+
+      {isLoading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
+      ) : (
+        <FlatList
+          data={leaderboard}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item, index }) => (
+            <LeaderboardItem
+              rank={index + 1}
+              user={item.name}
+              steps={item.steps}
+              isCurrentUser={item.id === currentUserRank?.id}
+            />
+          )}
+          ListEmptyComponent={
+            <Text className="p-4 text-center font-dotgothic text-white">
+              Aucune donnée de classement disponible
+            </Text>
+          }
+        />
+      )}
+    </SafeAreaView>
+  );
+}
+</file>
+
+<file path="tailwind.config.js">
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ['./src/**/*.{js,jsx,ts,tsx}'],
+
+  presets: [require('nativewind/preset')],
+  theme: {
+    extend: {
+      fontFamily: {
+        dotgothic: ['DotGothic16_400Regular'],
+      },
+    },
+  },
+  plugins: [],
+};
+</file>
+
+<file path="tsconfig.json">
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "jsx": "react-jsx",
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+</file>
+
 <file path="package.json">
 {
   "name": "onemorestep",
@@ -1718,38 +1873,6 @@ module.exports = function (api) {
   },
   "main": "expo-router/entry",
   "private": true
-}
-</file>
-
-<file path="tailwind.config.js">
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: ['./src/**/*.{js,jsx,ts,tsx}'],
-
-  presets: [require('nativewind/preset')],
-  theme: {
-    extend: {
-      fontFamily: {
-        dotgothic: ['DotGothic16_400Regular'],
-      },
-    },
-  },
-  plugins: [],
-};
-</file>
-
-<file path="tsconfig.json">
-{
-  "extends": "expo/tsconfig.base",
-  "compilerOptions": {
-    "strict": true,
-    "jsx": "react-jsx",
-
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
-  }
 }
 </file>
 

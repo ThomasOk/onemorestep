@@ -4,11 +4,13 @@ import { SharedValue } from 'react-native-reanimated';
 import { AppText } from '@/components/app-text';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { DevControls } from './dev-controls';
+import { LevelInfo } from '../utils/level-utils';
 
 interface StepsDisplayProps {
   displayedSteps: number;
   animatedProgress: SharedValue<number>;
   yesterdaySteps: number;
+  levelInfo: LevelInfo;
   devMode: boolean;
   setDevMode: (mode: boolean) => void;
   resetDevCounter: () => void;
@@ -18,6 +20,7 @@ export const StepsDisplay: React.FC<StepsDisplayProps> = ({
   displayedSteps,
   animatedProgress,
   yesterdaySteps,
+  levelInfo,
   devMode,
   setDevMode,
   resetDevCounter,
@@ -26,7 +29,7 @@ export const StepsDisplay: React.FC<StepsDisplayProps> = ({
     <>
       <View className="flex-1 items-center">
         <View className="items-center">
-          <AppText className="mb-5 text-2xl text-white">Lv 0</AppText>
+          <AppText className="mb-5 text-2xl text-white">Lv {levelInfo.currentLevel}</AppText>
           {/* ↑ */}
           {/* <AppText className="mb-5 text-3xl text-white">{displayedSteps}</AppText> */}
         </View>
@@ -35,7 +38,7 @@ export const StepsDisplay: React.FC<StepsDisplayProps> = ({
 
           <ProgressBar
             progress={animatedProgress}
-            maxValue={8000}
+            maxValue={levelInfo.totalStepsForCurrentLevel}
             width="100%"
             height={12}
             outerBorderWidth={2}
@@ -47,7 +50,7 @@ export const StepsDisplay: React.FC<StepsDisplayProps> = ({
           />
         </View>
 
-        {/* <DevControls devMode={devMode} setDevMode={setDevMode} resetDevCounter={resetDevCounter} /> */}
+        <DevControls devMode={devMode} setDevMode={setDevMode} resetDevCounter={resetDevCounter} />
       </View>
 
       <View className="w-full items-center pb-10">
