@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getLeaderboard, getCurrentUserRank } from '../services/leaderboard';
+import { getLeaderboard, getCurrentUserRank } from '../../../services/leaderboard';
 
 interface LeaderboardUser {
   id: string;

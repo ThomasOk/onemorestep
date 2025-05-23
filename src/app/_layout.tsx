@@ -7,6 +7,7 @@ import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import '../../global.css';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Toaster } from 'sonner-native';
 
 // import { APIProvider } from '@/api';
 // import { useThemeConfig } from '@/lib';
@@ -25,9 +26,39 @@ export default function RootLayout() {
     <>
       <StatusBar style="auto" />
       <SafeAreaProvider>
-        <Stack>
-          <Stack.Screen name="(app)" options={{ headerShown: false }} />
-        </Stack>
+        <GestureHandlerRootView>
+          <Stack>
+            <Stack.Screen name="(app)" options={{ headerShown: false }} />
+          </Stack>
+          <Toaster
+            position="bottom-center"
+            swipeToDismissDirection="up"
+            closeButton={true}
+            toastOptions={{
+              style: {
+                backgroundColor: '#111111',
+                borderWidth: 1,
+                borderColor: '#FFFFFF',
+                borderRadius: 8,
+                // shadowColor: '#000000',
+                // shadowOffset: { width: 0, height: 2 },
+                // shadowOpacity: 0.8,
+                // shadowRadius: 4,
+                elevation: 5, // Pour Android
+              },
+              titleStyle: {
+                color: '#FFFFFF',
+                fontFamily: 'DotGothic16_400Regular', // Utilisez votre police pixel
+                fontSize: 16,
+              },
+              descriptionStyle: {
+                color: '#CCCCCC',
+                fontFamily: 'DotGothic16_400Regular',
+                fontSize: 14,
+              },
+            }}
+          />
+        </GestureHandlerRootView>
       </SafeAreaProvider>
     </>
   );

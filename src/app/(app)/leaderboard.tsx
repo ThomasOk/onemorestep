@@ -1,7 +1,7 @@
 import { View, Text, FlatList, ActivityIndicator } from 'react-native';
 import { useFonts, DotGothic16_400Regular } from '@expo-google-fonts/dotgothic16';
-import useLeaderboard from '../../hooks/use-leaderboard';
-import LeaderboardItem from '../../components/leaderboard-item';
+import useLeaderboard from '@/features/leaderboard/hooks/use-leaderboard';
+import LeaderboardItem from '@/features/leaderboard/components/leaderboard-item';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LeaderboardScreen() {

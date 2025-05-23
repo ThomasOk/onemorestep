@@ -15,7 +15,7 @@ The content is organized as follows:
 2. Repository information
 3. Directory structure
 4. Repository files (if enabled)
-4. Repository files, each consisting of:
+5. Multiple file entries, each consisting of:
   - File path as an attribute
   - Full contents of the file
 </file_format>
@@ -38,10 +38,6 @@ The content is organized as follows:
 - Files are sorted by Git change count (files with more changes are at the bottom)
 </notes>
 
-<additional_info>
-
-</additional_info>
-
 </file_summary>
 
 <directory_structure>
@@ -50,28 +46,34 @@ androidManifestPlugin.js
 app-env.d.ts
 app.json
 App.tsx
-app/(tabs)/_layout.tsx
-app/(tabs)/home.tsx
-app/(tabs)/leaderboard.tsx
-app/index.tsx
 babel.config.js
 cesconfig.json
-components/Container.tsx
-components/EditScreenInfo.tsx
-components/leaderboard-item.tsx
-components/record-card.tsx
-components/ScreenContent.tsx
-components/steps-card.tsx
 eas.json
 eslint.config.js
 global.css
-hooks/use-leaderboard.ts
-hooks/useHealthData.ts
 metro.config.js
 nativewind-env.d.ts
 package.json
 prettier.config.js
-services/leaderboard.ts
+src/app/_layout.tsx
+src/app/(app)/_layout.tsx
+src/app/(app)/home.tsx
+src/app/(app)/leaderboard.tsx
+src/app/index.tsx
+src/components/app-text.tsx
+src/components/record-card.tsx
+src/components/steps-card.tsx
+src/components/ui/pixel-button.tsx
+src/components/ui/progress-bar.tsx
+src/features/leaderboard/components/leaderboard-item.tsx
+src/features/leaderboard/hooks/use-leaderboard.ts
+src/features/steps/components/dev-controls.tsx
+src/features/steps/components/steps-display.tsx
+src/features/steps/hooks/use-steps-animation.ts
+src/features/steps/hooks/use-steps-health-api.ts
+src/services/leaderboard.ts
+src/utils/date-utils.ts
+src/utils/error-utils.ts
 tailwind.config.js
 tsconfig.json
 </directory_structure>
@@ -79,156 +81,7 @@ tsconfig.json
 <files>
 This section contains the contents of the repository's files.
 
-<file path="androidManifestPlugin.js">
-const { withAndroidManifest } = require('@expo/config-plugins');
-
-module.exports = function androidManifestPlugin(config) {
-  return withAndroidManifest(config, async (config) => {
-    let androidManifest = config.modResults.manifest;
-
-    androidManifest.application[0].activity[0]['intent-filter'].push({
-      action: [
-        {
-          $: {
-            'android:name': 'androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE',
-          },
-        },
-      ],
-    });
-
-    return config;
-  });
-};
-</file>
-
-<file path="app/(tabs)/_layout.tsx">
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-
-export default function TabsLayout() {
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: '#FFFFFF',
-        tabBarInactiveTintColor: '#888888',
-        tabBarStyle: {
-          backgroundColor: '#111111',
-          borderTopColor: '#333333',
-        },
-        headerStyle: {
-          backgroundColor: '#000000',
-        },
-        headerTintColor: '#FFFFFF',
-      }}>
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: 'Mes Pas',
-          tabBarIcon: ({ color, size }) => <Ionicons name="footsteps" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="leaderboard"
-        options={{
-          title: 'Classement',
-          tabBarIcon: ({ color, size }) => <Ionicons name="trophy" size={size} color={color} />,
-        }}
-      />
-    </Tabs>
-  );
-}
-</file>
-
-<file path="app/(tabs)/home.tsx">
-import { View, Text } from 'react-native';
-import { useEffect } from 'react';
-import { useFonts, DotGothic16_400Regular } from '@expo-google-fonts/dotgothic16';
-import useHealthData from '../../hooks/useHealthData';
-import StepsCard from '../../components/steps-card';
-import RecordCard from '../../components/record-card';
-
-export default function HomeScreen() {
-  const [fontsLoaded] = useFonts({
-    DotGothic16_400Regular,
-  });
-
-  const { steps, yesterdaySteps, isLoading } = useHealthData(new Date());
-
-  if (!fontsLoaded) {
-    return null;
-  }
-
-  return (
-    <View className="flex-1 items-center justify-center bg-black">
-      <StepsCard steps={steps} yesterdaySteps={yesterdaySteps} isLoading={isLoading} />
-
-      {/* {recordSteps > 0 && (
-        <RecordCard recordSteps={recordSteps} recordDate={recordDate} currentSteps={steps} />
-      )} */}
-    </View>
-  );
-}
-</file>
-
-<file path="app/(tabs)/leaderboard.tsx">
-import { View, Text, FlatList, ActivityIndicator } from 'react-native';
-import { useFonts, DotGothic16_400Regular } from '@expo-google-fonts/dotgothic16';
-import useLeaderboard from '../../hooks/use-leaderboard';
-import LeaderboardItem from '../../components/leaderboard-item';
-
-export default function LeaderboardScreen() {
-  const [fontsLoaded] = useFonts({
-    DotGothic16_400Regular,
-  });
-
-  const { leaderboard, isLoading, currentUserRank } = useLeaderboard();
-
-  if (!fontsLoaded) {
-    return null;
-  }
-
-  return (
-    <View className="flex-1 bg-black">
-      <Text className="my-4 text-center font-dotgothic text-2xl text-white">Classement</Text>
-
-      {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#FFFFFF" />
-        </View>
-      ) : (
-        <FlatList
-          data={leaderboard}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => (
-            <LeaderboardItem
-              rank={index + 1}
-              user={item.name}
-              steps={item.steps}
-              isCurrentUser={item.id === currentUserRank?.id}
-            />
-          )}
-          ListEmptyComponent={
-            <Text className="p-4 text-center font-dotgothic text-white">
-              Aucune donnée de classement disponible
-            </Text>
-          }
-        />
-      )}
-    </View>
-  );
-}
-</file>
-
-<file path="app/index.tsx">
-import { Redirect } from 'expo-router';
-
-export default function Index() {
-  // Rediriger vers l'onglet principal
-  return <Redirect href="/home" />;
-}
-</file>
-
-<file path="components/leaderboard-item.tsx">
+<file path="src/features/leaderboard/components/leaderboard-item.tsx">
 import { View, Text } from 'react-native';
 
 interface LeaderboardItemProps {
@@ -277,123 +130,9 @@ function getRankBackgroundColor(rank: number): string {
 }
 </file>
 
-<file path="components/record-card.tsx">
-import { View, Text } from 'react-native';
-
-interface RecordCardProps {
-  recordSteps: number;
-  recordDate: string | null;
-  currentSteps: number;
-}
-
-export default function RecordCard({ recordSteps, recordDate, currentSteps }: RecordCardProps) {
-  const recordProgress = Math.round((currentSteps / recordSteps) * 100);
-
-  return (
-    <View className="mb-4 w-11/12 items-center rounded-xl bg-gray-800 p-4">
-      <Text className="font-dotgothic text-lg text-yellow-400">Record Personnel</Text>
-
-      <Text className="font-dotgothic text-3xl text-yellow-400">{recordSteps}</Text>
-
-      {recordDate && (
-        <Text className="mt-1 font-dotgothic text-xs text-gray-400">{recordDate}</Text>
-      )}
-
-      <View className="mt-3 h-2 w-full rounded-full bg-gray-700">
-        <View
-          className="h-2 rounded-full bg-yellow-400"
-          style={{ width: `${Math.min(recordProgress, 100)}%` }}
-        />
-      </View>
-
-      <Text className="mt-1 font-dotgothic text-xs text-gray-400">
-        {recordProgress}% de votre record
-      </Text>
-    </View>
-  );
-}
-</file>
-
-<file path="components/steps-card.tsx">
-import { View, Text, ActivityIndicator } from 'react-native';
-
-interface StepsCardProps {
-  steps: number;
-  yesterdaySteps: number;
-  isLoading: boolean;
-}
-
-export default function StepsCard({ steps, yesterdaySteps, isLoading }: StepsCardProps) {
-  const calculateChange = (): { percent: number; isIncrease: boolean } => {
-    if (yesterdaySteps === 0) return { percent: 0, isIncrease: true };
-
-    const change = steps - yesterdaySteps;
-    const percent = Math.abs(Math.round((change / yesterdaySteps) * 100));
-
-    return {
-      percent: percent,
-      isIncrease: change >= 0,
-    };
-  };
-
-  const { percent, isIncrease } = calculateChange();
-
-  return (
-    <View className="mb-4 w-11/12 rounded-xl bg-gray-800 p-5">
-      <Text className="mb-2 text-center font-dotgothic text-2xl text-white">Today Steps</Text>
-
-      {isLoading ? (
-        <ActivityIndicator size="large" color="#FFFFFF" />
-      ) : (
-        <View className="items-center">
-          <Text className="font-dotgothic text-6xl text-white">{steps}</Text>
-
-          {yesterdaySteps > 0 && (
-            <View className="mt-4 items-center">
-              <Text className="font-dotgothic text-sm text-gray-400">Hier: {yesterdaySteps}</Text>
-
-              {percent > 0 && (
-                <Text
-                  className={`font-dotgothic text-lg ${isIncrease ? 'text-green-500' : 'text-red-500'}`}>
-                  {isIncrease ? '↑' : '↓'} {percent}%
-                </Text>
-              )}
-            </View>
-          )}
-        </View>
-      )}
-    </View>
-  );
-}
-</file>
-
-<file path="eas.json">
-{
-  "cli": {
-    "version": ">= 16.4.1",
-    "appVersionSource": "remote"
-  },
-  "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal"
-    },
-    "preview": {
-      "distribution": "internal"
-    },
-    "production": {
-      "autoIncrement": true
-    }
-  },
-  "submit": {
-    "production": {}
-  }
-}
-</file>
-
-<file path="hooks/use-leaderboard.ts">
+<file path="src/features/leaderboard/hooks/use-leaderboard.ts">
 import { useState, useEffect } from 'react';
-import { getLeaderboard, getCurrentUserRank } from '../services/leaderboard';
+import { getLeaderboard, getCurrentUserRank } from '../../../services/leaderboard';
 
 interface LeaderboardUser {
   id: string;
@@ -431,39 +170,174 @@ export default function useLeaderboard() {
 }
 </file>
 
-<file path="hooks/useHealthData.ts">
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { initialize, requestPermission, readRecords } from 'react-native-health-connect';
-import { TimeRangeFilter } from 'react-native-health-connect/lib/typescript/types/base.types';
-import { Platform, AppState, AppStateStatus } from 'react-native';
+<file path="src/features/steps/components/dev-controls.tsx">
+import React from 'react';
+import { TouchableOpacity } from 'react-native';
+import { AppText } from '@/components/app-text';
 
-// Interface pour le regroupement par source
-interface StepsBySource {
-  [key: string]: number;
+interface DevControlsProps {
+  devMode: boolean;
+  setDevMode: (mode: boolean) => void;
+  resetDevCounter: () => void;
 }
 
-// Noms conviviaux pour les sources
-const sourceDisplayNames: Record<string, string> = {
-  'com.google.android.apps.fitness': 'Google Fit',
-  'nl.appyhapps.healthsync': 'Health Sync',
-  'com.samsung.health.service': 'Samsung Health',
-  // Ajoutez d'autres sources selon vos besoins
+export const DevControls: React.FC<DevControlsProps> = ({
+  devMode,
+  setDevMode,
+  resetDevCounter,
+}) => {
+  return (
+    <>
+      <TouchableOpacity
+        className="mt-6 rounded-lg bg-gray-800 p-3"
+        onPress={() => setDevMode(!devMode)}>
+        <AppText className="text-white">
+          {devMode ? 'Mode Dev: ON (+500 pas/refresh)' : 'Mode Dev: OFF'}
+        </AppText>
+      </TouchableOpacity>
+
+      {devMode && (
+        <TouchableOpacity className="mt-3 rounded-lg bg-red-800 p-3" onPress={resetDevCounter}>
+          <AppText className="text-white">Reset Dev Counter</AppText>
+        </TouchableOpacity>
+      )}
+    </>
+  );
+};
+</file>
+
+<file path="src/features/steps/components/steps-display.tsx">
+import React from 'react';
+import { View } from 'react-native';
+import { SharedValue } from 'react-native-reanimated';
+import { AppText } from '@/components/app-text';
+import { ProgressBar } from '@/components/ui/progress-bar';
+import { DevControls } from './dev-controls';
+
+interface StepsDisplayProps {
+  displayedSteps: number;
+  animatedProgress: SharedValue<number>;
+  yesterdaySteps: number;
+  devMode: boolean;
+  setDevMode: (mode: boolean) => void;
+  resetDevCounter: () => void;
+}
+
+export const StepsDisplay: React.FC<StepsDisplayProps> = ({
+  displayedSteps,
+  animatedProgress,
+  yesterdaySteps,
+  devMode,
+  setDevMode,
+  resetDevCounter,
+}) => {
+  return (
+    <>
+      <View className="flex-1 items-center">
+        <View className="items-center">
+          <AppText className="mb-5 text-2xl text-white">Lv 0</AppText>
+          {/* ↑ */}
+          {/* <AppText className="mb-5 text-3xl text-white">{displayedSteps}</AppText> */}
+        </View>
+        <View className="w-1/2">
+          <AppText className="text-base text-white">next level</AppText>
+
+          <ProgressBar
+            progress={animatedProgress}
+            maxValue={8000}
+            width="100%"
+            height={12}
+            outerBorderWidth={2}
+            innerBorderWidth={2}
+            outerBorderColor="#ffffff"
+            innerBorderColor="#000000"
+            backgroundColor="#333333"
+            fillColor="#fecdd3"
+          />
+        </View>
+
+        {/* <DevControls devMode={devMode} setDevMode={setDevMode} resetDevCounter={resetDevCounter} /> */}
+      </View>
+
+      <View className="w-full items-center pb-10">
+        <AppText className="text-lg text-white">{`Yesterday: ${yesterdaySteps}`}</AppText>
+      </View>
+    </>
+  );
+};
+</file>
+
+<file path="src/features/steps/hooks/use-steps-animation.ts">
+import { useEffect, useState } from 'react';
+import { useSharedValue, withTiming, withDelay, Easing } from 'react-native-reanimated';
+
+export const useStepAnimation = (currentSteps: number, previousSteps: number = 0) => {
+  const [displayedSteps, setDisplayedSteps] = useState(previousSteps);
+
+  // Valeurs animées pour le compteur et la barre de progression
+  const animatedStepsValue = useSharedValue(previousSteps);
+  const animatedProgress = useSharedValue(previousSteps);
+
+  // Animation lorsque les pas changent
+  useEffect(() => {
+    if (currentSteps > 0) {
+      // Animation de la barre de progression
+      animatedProgress.value = withDelay(
+        300,
+        withTiming(currentSteps, {
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
+
+      // Animation du compteur de pas
+      animatedStepsValue.value = withDelay(
+        300,
+        withTiming(currentSteps, {
+          duration: 800,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
+
+      console.log(`Animation démarrée: de ${previousSteps} à ${currentSteps}`);
+    }
+  }, [currentSteps, previousSteps]);
+
+  // Mise à jour de l'affichage selon la valeur animée
+  useEffect(() => {
+    const updateDisplayedSteps = () => {
+      const valueToDisplay = Math.round(animatedStepsValue.value);
+      setDisplayedSteps(valueToDisplay);
+    };
+
+    const intervalId = setInterval(updateDisplayedSteps, 16); // ~60fps
+    return () => clearInterval(intervalId);
+  }, [animatedStepsValue.value]);
+
+  return {
+    displayedSteps,
+    animatedStepsValue,
+    animatedProgress,
+  };
+};
+</file>
+
+<file path="src/features/steps/hooks/use-steps-health-api.ts">
+import { useEffect, useState } from 'react';
+import { initialize, requestPermission, readRecords } from 'react-native-health-connect';
+import { TimeRangeFilter } from 'react-native-health-connect/lib/typescript/types/base.types';
+import { Platform } from 'react-native';
+
+type StepsBySource = {
+  [key: string]: number;
 };
 
-const useHealthData = (selectedDate: Date = new Date()) => {
+export const useSteps = (selectedDate: Date = new Date()) => {
   const [steps, setSteps] = useState(0);
   const [yesterdaySteps, setYesterdaySteps] = useState(0);
   const [stepsBySource, setStepsBySource] = useState<StepsBySource>({});
   const [selectedSource, setSelectedSource] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
-  // Utiliser une référence pour suivre si les données ont déjà été chargées
-  // Cela aide à éviter les rechargements multiples lors des rendus
-  const initialLoadDone = useRef(false);
-
-  // Référence pour stocker l'ID de l'intervalle
-  const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Fonction pour calculer le nombre total de pas à partir d'une réponse Health Connect
   const calculateTotalSteps = (
@@ -497,7 +371,6 @@ const useHealthData = (selectedDate: Date = new Date()) => {
     return { maxSteps, maxSource, stepsBySource: sourcesMap };
   };
 
-  // Fonction pour obtenir les pas pour une date spécifique
   const getStepsForDate = async (date: Date) => {
     // Créer la plage de temps pour la date (de minuit à minuit)
     const startOfDay = new Date(date);
@@ -524,26 +397,23 @@ const useHealthData = (selectedDate: Date = new Date()) => {
   };
 
   // Fonction pour charger les données de santé
-  const loadHealthData = useCallback(async (date: Date) => {
+  const loadHealthData = async (date: Date) => {
     if (Platform.OS !== 'android') {
       return;
     }
 
     setIsLoading(true);
-    console.log('Chargement des données de santé pour', date.toDateString());
 
     try {
       // Initialisation du client Health Connect
-      console.log('Initialisation de Health Connect...');
       const isInitialized = await initialize();
       if (!isInitialized) {
-        console.log("Échec de l'initialisation de Health Connect");
+        console.log('Failed to initialize Health Connect');
         setIsLoading(false);
         return;
       }
 
       // Demande permission pour les pas
-      console.log('Demande de permission pour les pas...');
       const grantedPermissions = await requestPermission([
         { accessType: 'read', recordType: 'Steps' },
       ]);
@@ -551,119 +421,56 @@ const useHealthData = (selectedDate: Date = new Date()) => {
       // Vérifie si la permission pour les pas a été accordée
       const hasStepsPermission = grantedPermissions.some((perm) => perm.recordType === 'Steps');
 
-      console.log('Permission pour les pas accordée:', hasStepsPermission);
-
       if (!hasStepsPermission) {
-        console.log('Permission refusée pour les pas');
+        console.log('No permission for Steps');
         setIsLoading(false);
         return;
       }
 
+      // POUR TESTS: Décommentez et modifiez ces lignes pour tester avec des dates spécifiques
+      /*
+      // Test: Définir une plage de dates personnalisée pour le jour actuel
+      const customStartDate = new Date('2024-05-08T00:00:00'); // Format YYYY-MM-DDTHH:MM:SS
+      const customEndDate = new Date('2024-05-08T23:59:59');   // Format YYYY-MM-DDTHH:MM:SS
+      
+      // Remplacez date par customStartDate dans les appels ci-dessous
+      // Et utilisez ces dates pour les tests
+      console.log('Test: Plage de dates personnalisée', {
+        start: customStartDate.toLocaleString(),
+        end: customEndDate.toLocaleString()
+      });
+      */
+
       // 1. Récupérer les pas pour la date sélectionnée
-      console.log('Récupération des pas pour', date.toDateString());
       const todayResponse = await getStepsForDate(date);
       const { maxSteps, maxSource, stepsBySource: sourcesMap } = calculateTotalSteps(todayResponse);
-      console.log('Pas trouvés:', maxSteps);
 
       // 2. Récupérer les pas pour la veille
       const yesterday = new Date(date);
       yesterday.setDate(yesterday.getDate() - 1);
-      console.log('Récupération des pas pour', yesterday.toDateString());
       const yesterdayResponse = await getStepsForDate(yesterday);
       const { maxSteps: yesterdayMaxSteps } = calculateTotalSteps(yesterdayResponse);
-      console.log("Pas d'hier trouvés:", yesterdayMaxSteps);
 
       // Mettre à jour l'état
       setSteps(maxSteps);
       setYesterdaySteps(yesterdayMaxSteps);
       setStepsBySource(sourcesMap);
       setSelectedSource(maxSource);
-
-      // Enregistrer l'heure de la dernière mise à jour
-      setLastUpdated(new Date());
     } catch (error) {
-      console.error('Erreur lors du chargement des données:', error);
+      console.error('Erreur:', error);
     } finally {
       setIsLoading(false);
     }
-  }, []); // Aucune dépendance pour éviter les cycles
+  };
 
-  // Fonction pour vérifier si une date est aujourd'hui
-  const isToday = useCallback((date: Date): boolean => {
-    const today = new Date();
-    return (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-    );
-  }, []);
-
-  // Chargement initial uniquement
-  useEffect(() => {
-    // Ne charger les données qu'une seule fois au montage initial
-    if (!initialLoadDone.current) {
-      console.log('Premier chargement des données');
-      loadHealthData(selectedDate);
-      initialLoadDone.current = true;
-    } else if (isToday(selectedDate)) {
-      // Recharger si la date est aujourd'hui (pour les actualisations)
-      console.log("Rechargement des données pour aujourd'hui");
-      loadHealthData(selectedDate);
-    }
-  }, [selectedDate, loadHealthData, isToday]);
-
-  // Effet pour l'actualisation périodique - uniquement pour aujourd'hui
-  useEffect(() => {
-    // Nettoyer l'intervalle précédent s'il existe
-    if (intervalIdRef.current) {
-      clearInterval(intervalIdRef.current);
-      intervalIdRef.current = null;
-    }
-
-    // Ne configurer l'intervalle que si la date sélectionnée est aujourd'hui
-    if (isToday(selectedDate)) {
-      console.log("Mise en place de l'actualisation périodique des pas");
-
-      // Actualiser les données toutes les 60 secondes
-      intervalIdRef.current = setInterval(() => {
-        console.log('Actualisation automatique des données de pas...');
-        loadHealthData(selectedDate);
-      }, 60000); // 60000 ms = 1 minute
-    }
-
-    // Nettoyage : arrêter l'intervalle lorsque le composant est démonté
-    return () => {
-      if (intervalIdRef.current) {
-        console.log("Arrêt de l'actualisation périodique");
-        clearInterval(intervalIdRef.current);
-        intervalIdRef.current = null;
-      }
-    };
-  }, [selectedDate, loadHealthData, isToday]);
-
-  // Effet pour l'actualisation lors du retour au premier plan
-  useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      // Actualiser quand l'app revient au premier plan et que la date est aujourd'hui
-      if (nextAppState === 'active' && isToday(selectedDate)) {
-        console.log('App revenue au premier plan, actualisation des données...');
-        loadHealthData(selectedDate);
-      }
-    };
-
-    // S'abonner aux changements d'état de l'application
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-
-    // Nettoyage lors du démontage
-    return () => {
-      subscription.remove();
-    };
-  }, [selectedDate, loadHealthData, isToday]);
+  // useEffect(() => {
+  //   loadHealthData(selectedDate);
+  // }, [selectedDate]);
 
   // Fonction pour obtenir un nom convivial pour une source
-  const getSourceDisplayName = (source: string): string => {
-    return sourceDisplayNames[source] || source;
-  };
+  // const getSourceDisplayName = (source: string): string => {
+  //   return sourceDisplayNames[source] || source;
+  // };
 
   // Fonction pour formater une date
   const formatDate = (date: Date): string => {
@@ -674,33 +481,214 @@ const useHealthData = (selectedDate: Date = new Date()) => {
     });
   };
 
-  // Fonction pour formater l'heure de dernière mise à jour
-  const getLastUpdatedText = (): string => {
-    if (!lastUpdated) return 'Jamais mis à jour';
-
-    return `Mis à jour à ${lastUpdated.toLocaleTimeString('fr-FR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })}`;
-  };
-
   return {
     steps,
     yesterdaySteps,
     stepsBySource,
     selectedSource,
-    getSourceDisplayName,
+    //getSourceDisplayName,
     isLoading,
     loadHealthData,
     formatDate,
-    isToday,
-    lastUpdated,
-    getLastUpdatedText,
   };
 };
+</file>
 
-export default useHealthData;
+<file path="src/utils/date-utils.ts">
+/**
+ * Vérifie si la date fournie est aujourd'hui
+ * @param date Date à vérifier
+ * @returns Vrai si la date est aujourd'hui, faux sinon
+ */
+export const isToday = (date: Date): boolean => {
+  const today = new Date();
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  );
+};
+
+/**
+ * Formate une date dans un format lisible en français
+ * @param date Date à formater
+ * @returns Chaîne formatée (ex: "lundi 10 mai")
+ */
+export const formatDate = (date: Date): string => {
+  return date.toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+};
+
+/**
+ * Obtient la date d'hier
+ * @param date Date de référence (aujourd'hui par défaut)
+ * @returns Une nouvelle date représentant hier
+ */
+export const getYesterday = (date: Date = new Date()): Date => {
+  const yesterday = new Date(date);
+  yesterday.setDate(yesterday.getDate() - 1);
+  return yesterday;
+};
+</file>
+
+<file path="src/utils/error-utils.ts">
+export const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String(error.message);
+  }
+  return 'Unknown error';
+};
+</file>
+
+<file path=".gitignore">
+node_modules/
+.expo/
+dist/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+
+
+
+
+ios
+android
+
+# macOS
+.DS_Store
+
+# Temporary files created by Metro to check the health of the file watcher
+.metro-health-check*
+</file>
+
+<file path="androidManifestPlugin.js">
+const { withAndroidManifest } = require('@expo/config-plugins');
+
+module.exports = function androidManifestPlugin(config) {
+  return withAndroidManifest(config, async (config) => {
+    let androidManifest = config.modResults.manifest;
+
+    androidManifest.application[0].activity[0]['intent-filter'].push({
+      action: [
+        {
+          $: {
+            'android:name': 'androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE',
+          },
+        },
+      ],
+    });
+
+    return config;
+  });
+};
+</file>
+
+<file path="app-env.d.ts">
+// @ts-ignore
+/// <reference types="nativewind/types" />
+</file>
+
+<file path="cesconfig.json">
+{
+  "cesVersion": "2.18.1",
+  "projectName": "onemorestep",
+  "packages": [
+    {
+      "name": "nativewind",
+      "type": "styling"
+    }
+  ],
+  "flags": {
+    "noGit": false,
+    "noInstall": false,
+    "overwrite": false,
+    "importAlias": true,
+    "packageManager": "npm",
+    "eas": false,
+    "publish": false
+  },
+  "packageManager": {
+    "type": "npm",
+    "version": "10.9.2"
+  },
+  "os": {
+    "type": "Windows_NT",
+    "platform": "win32",
+    "arch": "x64",
+    "kernelVersion": "10.0.19045"
+  }
+}
+</file>
+
+<file path="eas.json">
+{
+  "cli": {
+    "version": ">= 16.4.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
+</file>
+
+<file path="eslint.config.js">
+/* eslint-env node */
+const { defineConfig } = require('eslint/config');
+const expoConfig = require('eslint-config-expo/flat');
+
+module.exports = defineConfig([
+  expoConfig,
+  {
+    ignores: ['dist/*'],
+  },
+  {
+    rules: {
+      'react/display-name': 'off',
+    },
+  },
+]);
+</file>
+
+<file path="global.css">
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+</file>
+
+<file path="metro.config.js">
+const { getDefaultConfig } = require('expo/metro-config');
+const { withNativeWind } = require('nativewind/metro');
+
+const config = getDefaultConfig(__dirname);
+
+module.exports = withNativeWind(config, { input: './global.css' });
 </file>
 
 <file path="nativewind-env.d.ts">
@@ -709,7 +697,711 @@ export default useHealthData;
 // NOTE: This file should not be edited and should be committed with your source code. It is generated by NativeWind.
 </file>
 
-<file path="services/leaderboard.ts">
+<file path="prettier.config.js">
+module.exports = {
+  printWidth: 100,
+  tabWidth: 2,
+  singleQuote: true,
+  bracketSameLine: true,
+  trailingComma: 'es5',
+
+  plugins: [require.resolve('prettier-plugin-tailwindcss')],
+  tailwindAttributes: ['className'],
+};
+</file>
+
+<file path="src/app/_layout.tsx">
+//import { ThemeProvider } from '@react-navigation/native';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import React from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import '../../global.css';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Toaster } from 'sonner-native';
+
+// import { APIProvider } from '@/api';
+// import { useThemeConfig } from '@/lib';
+
+export { ErrorBoundary } from 'expo-router';
+
+export const unstable_settings = {
+  initialRouteName: '(app)',
+};
+
+// Empêcher l'écran de démarrage de se cacher automatiquement
+SplashScreen.preventAutoHideAsync();
+
+export default function RootLayout() {
+  return (
+    <>
+      <StatusBar style="auto" />
+      <SafeAreaProvider>
+        <GestureHandlerRootView>
+          <Stack>
+            <Stack.Screen name="(app)" options={{ headerShown: false }} />
+          </Stack>
+          <Toaster
+            position="bottom-center"
+            swipeToDismissDirection="up"
+            closeButton={true}
+            toastOptions={{
+              style: {
+                backgroundColor: '#111111',
+                borderWidth: 1,
+                borderColor: '#FFFFFF',
+                borderRadius: 8,
+                // shadowColor: '#000000',
+                // shadowOffset: { width: 0, height: 2 },
+                // shadowOpacity: 0.8,
+                // shadowRadius: 4,
+                elevation: 5, // Pour Android
+              },
+              titleStyle: {
+                color: '#FFFFFF',
+                fontFamily: 'DotGothic16_400Regular', // Utilisez votre police pixel
+                fontSize: 16,
+              },
+              descriptionStyle: {
+                color: '#CCCCCC',
+                fontFamily: 'DotGothic16_400Regular',
+                fontSize: 14,
+              },
+            }}
+          />
+        </GestureHandlerRootView>
+      </SafeAreaProvider>
+    </>
+  );
+}
+
+// function Providers({ children }) {
+//   return <View style={styles.container}>{children}</View>;
+// }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
+</file>
+
+<file path="src/app/(app)/_layout.tsx">
+import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+
+export default function TabsLayout() {
+  return (
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: '#FFFFFF',
+        tabBarInactiveTintColor: '#888888',
+        tabBarStyle: {
+          backgroundColor: '#111111',
+          borderTopColor: '#333333',
+        },
+        headerStyle: {
+          backgroundColor: '#000000',
+        },
+        headerTintColor: '#FFFFFF',
+      }}>
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: 'My steps',
+          tabBarShowLabel: false,
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="footsteps-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="leaderboard"
+        options={{
+          title: 'Leaderboard',
+          tabBarShowLabel: false,
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            // <Ionicons name="ranking-star" size={size} color={color} />
+            <MaterialCommunityIcons name="podium-gold" size={size} color={color} />
+          ),
+        }}
+      />
+    </Tabs>
+  );
+}
+</file>
+
+<file path="src/app/(app)/home.tsx">
+import { View, ActivityIndicator, ScrollView, RefreshControl } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppText } from '@/components/app-text';
+import { StepsDisplay } from '@/features/steps/components/steps-display';
+import { useSteps } from '@/features/steps/hooks/use-steps-health-api';
+import { useStepAnimation } from '@/features/steps/hooks/use-steps-animation';
+import { getErrorMessage } from '@/utils/error-utils';
+import { toast } from 'sonner-native';
+
+export default function HomeScreen() {
+  const [refreshing, setRefreshing] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [previousSteps, setPreviousSteps] = useState(0);
+  const [devMode, setDevMode] = useState(false);
+  const [refreshCount, setRefreshCount] = useState(0);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  const today = useMemo(() => new Date(), []);
+
+  const { steps: originalSteps, yesterdaySteps, isLoading, loadHealthData } = useSteps(today);
+
+  const steps = devMode ? originalSteps + refreshCount * 500 : originalSteps;
+
+  const { displayedSteps, animatedProgress } = useStepAnimation(steps, previousSteps);
+
+  const showSyncNotification = (newSteps: number, oldSteps: number, hasError: boolean) => {
+    if (hasError) {
+      toast.error('Sync failed', {
+        description: 'Unable to sync your steps',
+        duration: 4000,
+      });
+      return;
+    }
+
+    const stepsDiff = newSteps - oldSteps;
+
+    if (stepsDiff > 0) {
+      toast.success(`${stepsDiff} steps added!`, {
+        duration: 3000,
+      });
+    } else if (oldSteps === 0 && newSteps === 0) {
+      toast('No step to add', {
+        description: 'Start walking to track your steps',
+        duration: 3000,
+      });
+    } else {
+      toast('No more step to add', {
+        description: 'Your steps are up to date',
+        duration: 3000,
+      });
+    }
+  };
+
+  const resetDevCounter = () => {
+    setRefreshCount(0);
+    setPreviousSteps(originalSteps);
+    console.log('Compteur développement réinitialisé');
+  };
+
+  // Préparation avant rafraîchissement des données
+  const handleBeforeRefresh = useCallback(() => {
+    setPreviousSteps(steps);
+  }, [steps]);
+
+  // Chargement initial des données
+  const handleLoadData = useCallback(async () => {
+    handleBeforeRefresh();
+    try {
+      setSyncError(null);
+      await loadHealthData(today);
+      setDataLoaded(true);
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      setSyncError(errorMessage);
+      console.error('Error loading initial data:', error);
+    }
+  }, [loadHealthData, today, handleBeforeRefresh]);
+
+  // Gestion du rafraîchissement par pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    const oldSteps = steps; // Capturer les pas avant le refresh
+    handleBeforeRefresh();
+
+    try {
+      setSyncError(null);
+      await loadHealthData(today);
+      setDataLoaded(true);
+
+      // En mode développement, incrémenter le compteur de refreshes
+      if (devMode) {
+        setRefreshCount((prev) => prev + 1);
+      }
+
+      // Afficher la notification après la synchronisation réussie
+      // On utilise une petite attente pour que les états soient mis à jour
+      setTimeout(() => {
+        const newSteps = devMode ? originalSteps + (refreshCount + 1) * 500 : originalSteps;
+        showSyncNotification(newSteps, oldSteps, false);
+      }, 100);
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      setSyncError(errorMessage);
+      showSyncNotification(0, 0, true);
+      console.error('Error during refresh:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadHealthData, today, handleBeforeRefresh, devMode, steps, originalSteps, refreshCount]);
+
+  // Charger les données au démarrage
+  useEffect(() => {
+    if (!dataLoaded && !isLoading) {
+      handleLoadData();
+    }
+  }, [dataLoaded, isLoading, handleLoadData]);
+
+  return (
+    <SafeAreaView className="flex-1 bg-black">
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            progressBackgroundColor="#000"
+            colors={['#FFFFFF']}
+          />
+        }>
+        {/* <View className="absolute left-0 right-0 top-0 z-10 items-center py-2"> */}
+        <View className="mb-20 items-center justify-center">
+          <View className="mb-20 items-center">
+            <AppText className="text-sm text-slate-500">Pull down to sync your steps</AppText>
+            <AppText className="text-sm text-slate-500">↓</AppText>
+          </View>
+          <AppText className="mb-10 text-3xl text-white">Today</AppText>
+          <AppText className="text-5xl text-white">{displayedSteps}</AppText>
+          {/* <AppText className="text-2xl text-white">&#129406;</AppText> */}
+          <AppText className="text-base text-slate-300">
+            {displayedSteps > 0 ? 'steps' : 'step'}
+          </AppText>
+        </View>
+
+        {isLoading && !refreshing ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color="#FFFFFF" />
+            <AppText className="mt-3 text-white">Chargement des données...</AppText>
+          </View>
+        ) : (
+          <StepsDisplay
+            displayedSteps={displayedSteps}
+            animatedProgress={animatedProgress}
+            yesterdaySteps={yesterdaySteps}
+            devMode={devMode}
+            setDevMode={setDevMode}
+            resetDevCounter={resetDevCounter}
+          />
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+</file>
+
+<file path="src/app/(app)/leaderboard.tsx">
+import { View, Text, FlatList, ActivityIndicator } from 'react-native';
+import { useFonts, DotGothic16_400Regular } from '@expo-google-fonts/dotgothic16';
+import useLeaderboard from '@/features/leaderboard/hooks/use-leaderboard';
+import LeaderboardItem from '@/features/leaderboard/components/leaderboard-item';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+export default function LeaderboardScreen() {
+  const [fontsLoaded] = useFonts({
+    DotGothic16_400Regular,
+  });
+
+  const { leaderboard, isLoading, currentUserRank } = useLeaderboard();
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
+  return (
+    <SafeAreaView className="flex-1 bg-black">
+      <Text className="my-4 text-center font-dotgothic text-2xl text-white">Classement</Text>
+
+      {isLoading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
+      ) : (
+        <FlatList
+          data={leaderboard}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item, index }) => (
+            <LeaderboardItem
+              rank={index + 1}
+              user={item.name}
+              steps={item.steps}
+              isCurrentUser={item.id === currentUserRank?.id}
+            />
+          )}
+          ListEmptyComponent={
+            <Text className="p-4 text-center font-dotgothic text-white">
+              Aucune donnée de classement disponible
+            </Text>
+          }
+        />
+      )}
+    </SafeAreaView>
+  );
+}
+</file>
+
+<file path="src/app/index.tsx">
+import { Redirect } from 'expo-router';
+import { Text, View } from 'react-native';
+
+export default function Index() {
+  // Rediriger vers l'onglet principal
+  return <Redirect href="/home" />;
+  // return (
+  //   <View>
+  //     <Text>aaaaaaaaaaaa</Text>
+  //   </View>
+  // );
+}
+</file>
+
+<file path="src/components/app-text.tsx">
+import { Text as RNText, TextProps } from 'react-native';
+import { useFonts, DotGothic16_400Regular } from '@expo-google-fonts/dotgothic16';
+
+export function AppText({ style, ...props }: TextProps) {
+  const [fontsLoaded] = useFonts({
+    DotGothic16_400Regular,
+  });
+
+  return (
+    <RNText
+      style={[{ fontFamily: fontsLoaded ? 'DotGothic16_400Regular' : undefined }, style]}
+      {...props}
+    />
+  );
+}
+</file>
+
+<file path="src/components/record-card.tsx">
+import { View, Text } from 'react-native';
+
+interface RecordCardProps {
+  recordSteps: number;
+  recordDate: string | null;
+  currentSteps: number;
+}
+
+export default function RecordCard({ recordSteps, recordDate, currentSteps }: RecordCardProps) {
+  const recordProgress = Math.round((currentSteps / recordSteps) * 100);
+
+  return (
+    <View className="mb-4 w-11/12 items-center rounded-xl bg-gray-800 p-4">
+      <Text className="font-dotgothic text-lg text-yellow-400">Record Personnel</Text>
+
+      <Text className="font-dotgothic text-3xl text-yellow-400">{recordSteps}</Text>
+
+      {recordDate && (
+        <Text className="mt-1 font-dotgothic text-xs text-gray-400">{recordDate}</Text>
+      )}
+
+      <View className="mt-3 h-2 w-full rounded-full bg-gray-700">
+        <View
+          className="h-2 rounded-full bg-yellow-400"
+          style={{ width: `${Math.min(recordProgress, 100)}%` }}
+        />
+      </View>
+
+      <Text className="mt-1 font-dotgothic text-xs text-gray-400">
+        {recordProgress}% de votre record
+      </Text>
+    </View>
+  );
+}
+</file>
+
+<file path="src/components/steps-card.tsx">
+import { View, Text, ActivityIndicator } from 'react-native';
+
+interface StepsCardProps {
+  steps: number;
+  yesterdaySteps: number;
+  isLoading: boolean;
+}
+
+export default function StepsCard({ steps, yesterdaySteps, isLoading }: StepsCardProps) {
+  const calculateChange = (): { percent: number; isIncrease: boolean } => {
+    if (yesterdaySteps === 0) return { percent: 0, isIncrease: true };
+
+    const change = steps - yesterdaySteps;
+    const percent = Math.abs(Math.round((change / yesterdaySteps) * 100));
+
+    return {
+      percent: percent,
+      isIncrease: change >= 0,
+    };
+  };
+
+  const { percent, isIncrease } = calculateChange();
+
+  return (
+    <View className="mb-4 w-11/12 rounded-xl bg-gray-800 p-5">
+      <Text className="mb-2 text-center font-dotgothic text-2xl text-white">Today Steps</Text>
+
+      {isLoading ? (
+        <View className="items-center py-4">
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text className="mt-2 font-dotgothic text-sm text-gray-400">Chargement...</Text>
+        </View>
+      ) : (
+        <View className="items-center">
+          <Text className="font-dotgothic text-6xl text-white">{steps}</Text>
+
+          {yesterdaySteps > 0 && (
+            <View className="mt-4 items-center">
+              <Text className="font-dotgothic text-sm text-gray-400">Hier: {yesterdaySteps}</Text>
+
+              {percent > 0 && (
+                <Text
+                  className={`font-dotgothic text-lg ${isIncrease ? 'text-green-500' : 'text-red-500'}`}>
+                  {isIncrease ? '↑' : '↓'} {percent}%
+                </Text>
+              )}
+            </View>
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
+</file>
+
+<file path="src/components/ui/pixel-button.tsx">
+// PixelButton.tsx
+import React from 'react';
+import { TouchableOpacity, View, StyleProp, TextStyle, ViewStyle } from 'react-native';
+import { AppText } from '@/components/app-text';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+
+// Types de boutons disponibles comme dans l'image
+type ButtonType = 'normal' | 'primary' | 'success' | 'warning' | 'error' | 'disabled';
+
+interface PixelButtonProps {
+  onPress: () => void;
+  text: string;
+  type?: ButtonType;
+  disabled?: boolean;
+  className?: string;
+  style?: StyleProp<ViewStyle>;
+  textClassName?: string;
+  textStyle?: StyleProp<TextStyle>;
+}
+
+export const PixelButton: React.FC<PixelButtonProps> = ({
+  onPress,
+  text,
+  type = 'primary',
+  disabled = false,
+  className = '',
+  style = {},
+  textClassName = '',
+  textStyle = {},
+}) => {
+  // Si le bouton est désactivé, on force le type à 'disabled'
+  const buttonType = disabled ? 'disabled' : type;
+
+  // Définition des couleurs selon le type de bouton
+  const getColors = (): { bg: string; textColor: string } => {
+    switch (buttonType) {
+      case 'normal':
+        return { bg: 'bg-black', textColor: 'text-white' };
+      case 'primary':
+        return { bg: 'bg-blue-500', textColor: 'text-white' };
+      case 'success':
+        return { bg: 'bg-green-500', textColor: 'text-white' };
+      case 'warning':
+        return { bg: 'bg-yellow-500', textColor: 'text-black' };
+      case 'error':
+        return { bg: 'bg-red-500', textColor: 'text-white' };
+      case 'disabled':
+        return { bg: 'bg-gray-300', textColor: 'text-gray-500' };
+      default:
+        return { bg: 'bg-blue-500', textColor: 'text-white' };
+    }
+  };
+
+  const { bg, textColor } = getColors();
+
+  return (
+    <View className={`relative ${className}`} style={style}>
+      {/* Bordure noire externe */}
+      <View className="rounded-md border-2 border-white">
+        {/* Fond du bouton et l'effet d'ombre */}
+        <View className={` rounded-md border-b-2 border-r-2 border-gray-300`}>
+          {/* Le bouton lui-même */}
+          <TouchableOpacity
+            onPress={onPress}
+            disabled={disabled}
+            activeOpacity={0.7}
+            className={`${bg} rounded-none px-2 py-1`}>
+            <View className="flex-row items-center justify-center">
+              <AppText className={`${textColor} ml-1 text-lg ${textClassName}`} style={textStyle}>
+                {text}
+              </AppText>
+              <View className="ml-1 mt-1">
+                <MaterialIcons name="sync" size={16} color="white" />
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+};
+</file>
+
+<file path="src/components/ui/progress-bar.tsx">
+import React from 'react';
+import { View, StyleSheet, StyleProp, ViewStyle, DimensionValue } from 'react-native';
+import Animated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
+
+export interface PixelProgressBarProps {
+  progress: number | SharedValue<number>; // Accepte une valeur normale ou une SharedValue de Reanimated
+  maxValue?: number;
+  width?: DimensionValue;
+  height?: number;
+  outerBorderWidth?: number;
+  innerBorderWidth?: number;
+  backgroundColor?: string;
+  fillColor?: string;
+  outerBorderColor?: string;
+  innerBorderColor?: string;
+  showPixelCorners?: boolean;
+  style?: StyleProp<ViewStyle>;
+}
+
+/**
+ * Composant de barre de progression style pixel art/rétro (similaire à NES.css)
+ * Avec double bordure : externe (blanche) et interne (noire)
+ * Personnalisable en largeur et hauteur
+ * Supporte l'animation avec Reanimated
+ */
+export const ProgressBar: React.FC<PixelProgressBarProps> = ({
+  progress,
+  maxValue = 10000,
+  width = '100%',
+  height = 28,
+  outerBorderWidth = 4,
+  innerBorderWidth = 2,
+  backgroundColor = '#333333',
+  fillColor = '#92d050',
+  outerBorderColor = '#ffffff',
+  innerBorderColor = '#000000',
+  showPixelCorners = true,
+  style,
+}) => {
+  // Déterminer si progress est une SharedValue ou un nombre simple
+  const isSharedValue = typeof progress !== 'number';
+
+  // Style animé pour la barre de progression
+  const animatedProgressStyle = useAnimatedStyle(() => {
+    // Obtenir la valeur actuelle (soit directement, soit depuis la SharedValue)
+    const currentProgress = isSharedValue ? progress.value : progress;
+
+    // S'assurer que la progression est entre 0 et maxValue
+    const clampedProgress = Math.max(0, Math.min(currentProgress, maxValue));
+    const progressPercentage = (clampedProgress / maxValue) * 100;
+
+    return {
+      width: `${progressPercentage}%`,
+    };
+  });
+
+  // Coins pixelisés pour un effet encore plus rétro
+  const renderPixelCorners = () => {
+    if (!showPixelCorners) return null;
+
+    const cornerSize = Math.min(outerBorderWidth, 4);
+
+    return (
+      <>
+        {/* Coin supérieur gauche */}
+        <View
+          className="absolute left-0 top-0 bg-black"
+          style={{ width: cornerSize, height: cornerSize }}
+        />
+        {/* Coin supérieur droit */}
+        <View
+          className="absolute right-0 top-0 bg-black"
+          style={{ width: cornerSize, height: cornerSize }}
+        />
+        {/* Coin inférieur gauche */}
+        <View
+          className="absolute bottom-0 left-0 bg-black"
+          style={{ width: cornerSize, height: cornerSize }}
+        />
+        {/* Coin inférieur droit */}
+        <View
+          className="absolute bottom-0 right-0 bg-black"
+          style={{ width: cornerSize, height: cornerSize }}
+        />
+      </>
+    );
+  };
+
+  // Styles définis avec StyleSheet pour optimiser les performances
+  const styles = StyleSheet.create({
+    container: {
+      width,
+      height,
+      backgroundColor: outerBorderColor,
+      padding: outerBorderWidth,
+    },
+    innerBorder: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: innerBorderColor,
+      padding: innerBorderWidth,
+    },
+    background: {
+      width: '100%',
+      height: '100%',
+      backgroundColor,
+      overflow: 'hidden',
+    },
+    progress: {
+      height: '100%',
+      backgroundColor: fillColor,
+    },
+    line: {
+      position: 'absolute',
+      width: '100%',
+      height: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    },
+  });
+
+  return (
+    <View className="relative shadow-md" style={[styles.container, style]}>
+      {renderPixelCorners()}
+
+      {/* Conteneur avec bordure interne noire */}
+      <View className="h-full w-full" style={styles.innerBorder}>
+        {/* Conteneur du fond de la barre et de la progression */}
+        <View className="h-full w-full overflow-hidden" style={styles.background}>
+          {/* Barre de progression animée */}
+          <Animated.View className="h-full" style={[styles.progress, animatedProgressStyle]} />
+        </View>
+      </View>
+    </View>
+  );
+};
+</file>
+
+<file path="src/services/leaderboard.ts">
 // Ce service simule des appels API pour récupérer le classement
 // Dans une application réelle, ces fonctions feraient des appels à votre backend
 
@@ -762,37 +1454,6 @@ export async function updateUserSteps(steps: number): Promise<void> {
     currentUser.steps = steps;
   }
 }
-</file>
-
-<file path=".gitignore">
-node_modules/
-.expo/
-dist/
-npm-debug.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-*.orig.*
-web-build/
-
-
-
-
-ios
-android
-
-# macOS
-.DS_Store
-
-# Temporary files created by Metro to check the health of the file watcher
-.metro-health-check*
-</file>
-
-<file path="app-env.d.ts">
-// @ts-ignore
-/// <reference types="nativewind/types" />
 </file>
 
 <file path="app.json">
@@ -865,7 +1526,7 @@ import { useFonts, DotGothic16_400Regular } from '@expo-google-fonts/dotgothic16
 import './global.css';
 import { Text, View, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useState } from 'react';
-import useHealthData from 'hooks/useHealthData';
+import useHealthData from '@/hooks/useHealthData';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -997,151 +1658,13 @@ export default function App() {
 <file path="babel.config.js">
 module.exports = function (api) {
   api.cache(true);
-  let plugins = [];
 
   return {
     presets: [['babel-preset-expo', { jsxImportSource: 'nativewind' }], 'nativewind/babel'],
 
-    plugins: ['expo-router/babel'],
+    plugins: ['react-native-reanimated/plugin'],
   };
 };
-</file>
-
-<file path="cesconfig.json">
-{
-  "cesVersion": "2.18.1",
-  "projectName": "onemorestep",
-  "packages": [
-    {
-      "name": "nativewind",
-      "type": "styling"
-    }
-  ],
-  "flags": {
-    "noGit": false,
-    "noInstall": false,
-    "overwrite": false,
-    "importAlias": true,
-    "packageManager": "npm",
-    "eas": false,
-    "publish": false
-  },
-  "packageManager": {
-    "type": "npm",
-    "version": "10.9.2"
-  },
-  "os": {
-    "type": "Windows_NT",
-    "platform": "win32",
-    "arch": "x64",
-    "kernelVersion": "10.0.19045"
-  }
-}
-</file>
-
-<file path="components/Container.tsx">
-import { SafeAreaView } from 'react-native';
-
-export const Container = ({ children }: { children: React.ReactNode }) => {
-  return <SafeAreaView className={styles.container}>{children}</SafeAreaView>;
-};
-
-const styles = {
-  container: 'flex flex-1 m-6',
-};
-</file>
-
-<file path="components/EditScreenInfo.tsx">
-import { Text, View } from 'react-native';
-
-export const EditScreenInfo = ({ path }: { path: string }) => {
-  const title = 'Open up the code for this screen:';
-  const description =
-    'Change any of the text, save the file, and your app will automatically update.';
-
-  return (
-    <View>
-      <View className={styles.getStartedContainer}>
-        <Text className={styles.getStartedText}>{title}</Text>
-        <View className={styles.codeHighlightContainer + styles.homeScreenFilename}>
-          <Text>{path}</Text>
-        </View>
-        <Text className={styles.getStartedText}>{description}</Text>
-      </View>
-    </View>
-  );
-};
-
-const styles = {
-  codeHighlightContainer: `rounded-md px-1`,
-  getStartedContainer: `items-center mx-12`,
-  getStartedText: `text-lg leading-6 text-center`,
-  helpContainer: `items-center mx-5 mt-4`,
-  helpLink: `py-4`,
-  helpLinkText: `text-center`,
-  homeScreenFilename: `my-2`,
-};
-</file>
-
-<file path="components/ScreenContent.tsx">
-import { Text, View } from 'react-native';
-
-import { EditScreenInfo } from './EditScreenInfo';
-
-type ScreenContentProps = {
-  title: string;
-  path: string;
-  children?: React.ReactNode;
-};
-
-export const ScreenContent = ({ title, path, children }: ScreenContentProps) => {
-  return (
-    <View className={styles.container}>
-      <Text className={styles.title}>{title}</Text>
-      <View className={styles.separator} />
-      <EditScreenInfo path={path} />
-      {children}
-    </View>
-  );
-};
-const styles = {
-  container: `items-center flex-1 justify-center`,
-  separator: `h-[1px] my-7 w-4/5 bg-gray-200`,
-  title: `text-xl font-bold`,
-};
-</file>
-
-<file path="eslint.config.js">
-/* eslint-env node */
-const { defineConfig } = require('eslint/config');
-const expoConfig = require('eslint-config-expo/flat');
-
-module.exports = defineConfig([
-  expoConfig,
-  {
-    ignores: ['dist/*'],
-  },
-  {
-    rules: {
-      'react/display-name': 'off',
-    },
-  },
-]);
-</file>
-
-<file path="global.css">
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-</file>
-
-<file path="metro.config.js">
-const { getDefaultConfig } = require('expo/metro-config');
-const { withNativeWind } = require('nativewind/metro');
-
-const config = getDefaultConfig(__dirname);
-
-module.exports = withNativeWind(config, { input: './global.css' });
 </file>
 
 <file path="package.json">
@@ -1159,23 +1682,27 @@ module.exports = withNativeWind(config, { input: './global.css' });
   },
   "dependencies": {
     "@expo-google-fonts/dotgothic16": "^0.3.0",
+    "@expo/vector-icons": "^14.1.0",
     "expo": "~53.0.8",
+    "expo-build-properties": "~0.14.6",
+    "expo-constants": "~17.1.6",
     "expo-dev-client": "~5.1.8",
     "expo-font": "~13.3.1",
     "expo-health-connect": "^0.1.1",
+    "expo-linking": "~7.1.4",
+    "expo-router": "~5.0.6",
+    "expo-splash-screen": "~0.30.8",
     "expo-status-bar": "~2.2.3",
     "nativewind": "latest",
     "react": "19.0.0",
     "react-native": "0.79.2",
+    "react-native-gesture-handler": "~2.24.0",
     "react-native-health-connect": "^3.3.2",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
-    "expo-build-properties": "~0.14.6",
-    "expo-router": "~5.0.6",
     "react-native-screens": "~4.10.0",
-    "expo-linking": "~7.1.4",
-    "expo-constants": "~17.1.6",
-    "@expo/vector-icons": "^14.1.0"
+    "react-native-svg": "15.11.2",
+    "sonner-native": "^0.20.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
@@ -1194,23 +1721,10 @@ module.exports = withNativeWind(config, { input: './global.css' });
 }
 </file>
 
-<file path="prettier.config.js">
-module.exports = {
-  printWidth: 100,
-  tabWidth: 2,
-  singleQuote: true,
-  bracketSameLine: true,
-  trailingComma: 'es5',
-
-  plugins: [require.resolve('prettier-plugin-tailwindcss')],
-  tailwindAttributes: ['className'],
-};
-</file>
-
 <file path="tailwind.config.js">
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ['./App.{js,ts,tsx}', './components/**/*.{js,ts,tsx}'],
+  content: ['./src/**/*.{js,jsx,ts,tsx}'],
 
   presets: [require('nativewind/preset')],
   theme: {
@@ -1233,7 +1747,7 @@ module.exports = {
 
     "baseUrl": ".",
     "paths": {
-      "~/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   }
 }

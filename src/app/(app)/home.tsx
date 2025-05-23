@@ -1,171 +1,120 @@
-import {
-  View,
-  Text,
-  ActivityIndicator,
-  TouchableOpacity,
-  ScrollView,
-  RefreshControl,
-} from 'react-native';
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import Animated, {
-  useSharedValue,
-  withTiming,
-  Easing,
-  withSequence,
-  withDelay,
-  useAnimatedProps,
-  useDerivedValue,
-} from 'react-native-reanimated';
-import StepsCard from '@/components/steps-card';
-import { AppText } from '@/components/app-text';
-import { PixelButton } from '@/components/ui/pixel-button';
-import { useSteps } from '@/api/health/use-steps';
+import { View, ActivityIndicator, ScrollView, RefreshControl } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { ProgressBar } from '@/components/ui/progress-bar';
+import { AppText } from '@/components/app-text';
+import { StepsDisplay } from '@/features/steps/components/steps-display';
+import { useSteps } from '@/features/steps/hooks/use-steps-health-api';
+import { useStepAnimation } from '@/features/steps/hooks/use-steps-animation';
+import { getErrorMessage } from '@/utils/error-utils';
+import { toast } from 'sonner-native';
 
 export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [previousSteps, setPreviousSteps] = useState(0);
-  const [displayedSteps, setDisplayedSteps] = useState(0);
+  const [devMode, setDevMode] = useState(false);
+  const [refreshCount, setRefreshCount] = useState(0);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
-  // Utilisez useMemo pour créer la date une seule fois
   const today = useMemo(() => new Date(), []);
 
-  // Utiliser le hook avec la date mémorisée
   const { steps: originalSteps, yesterdaySteps, isLoading, loadHealthData } = useSteps(today);
 
-  // Mode développement pour tester l'animation
-  const [devMode, setDevMode] = useState(false);
-  // Compteur de refreshes pour augmenter artificiellement les pas en dev
-  const [refreshCount, setRefreshCount] = useState(0);
-  // Pas simulés pour le développement
   const steps = devMode ? originalSteps + refreshCount * 500 : originalSteps;
 
-  // Fonction pour réinitialiser le compteur en mode développement
+  const { displayedSteps, animatedProgress } = useStepAnimation(steps, previousSteps);
+
+  const showSyncNotification = (newSteps: number, oldSteps: number, hasError: boolean) => {
+    if (hasError) {
+      toast.error('Sync failed', {
+        description: 'Unable to sync your steps',
+        duration: 4000,
+      });
+      return;
+    }
+
+    const stepsDiff = newSteps - oldSteps;
+
+    if (stepsDiff > 0) {
+      toast.success(`${stepsDiff} steps added!`, {
+        duration: 3000,
+      });
+    } else if (oldSteps === 0 && newSteps === 0) {
+      toast('No step to add', {
+        description: 'Start walking to track your steps',
+        duration: 3000,
+      });
+    } else {
+      toast('No more step to add', {
+        description: 'Your steps are up to date',
+        duration: 3000,
+      });
+    }
+  };
+
   const resetDevCounter = () => {
     setRefreshCount(0);
     setPreviousSteps(originalSteps);
-    setPreviousProgressValue(originalSteps);
-    animatedStepsValue.value = originalSteps;
-    animatedProgress.value = originalSteps;
-    setDisplayedSteps(originalSteps);
     console.log('Compteur développement réinitialisé');
   };
 
-  // Valeur animée pour la progression
-  const animatedProgress = useSharedValue(0);
-
-  // Valeur précédente de la progress bar pour l'animation
-  const [previousProgressValue, setPreviousProgressValue] = useState(0);
-
-  // Valeur animée pour le compteur de pas
-  const animatedStepsValue = useSharedValue(0);
-
-  // Effet pour animer les valeurs lorsque steps change
-  useEffect(() => {
-    if (dataLoaded && !isLoading && steps > 0) {
-      // Définir la valeur de départ de l'animation des pas
-      // Si c'est le premier chargement, partir de 0
-      // Sinon, partir de la valeur précédente
-      const startStepsValue = previousSteps > 0 ? previousSteps : 0;
-
-      // Conserver la valeur actuelle de la barre de progression
-      const currentProgressValue = animatedProgress.value;
-
-      // Mettre à jour la valeur de départ pour l'animation des pas
-      animatedStepsValue.value = startStepsValue;
-
-      // Animation de la barre de progression - depuis sa dernière valeur
-      // Ne pas réinitialiser à 0, mais continuer depuis la position actuelle
-      animatedProgress.value = withDelay(
-        300,
-        withTiming(steps, {
-          duration: 500,
-          easing: Easing.out(Easing.cubic),
-        })
-      );
-
-      // Animation du compteur de pas
-      animatedStepsValue.value = withDelay(
-        300,
-        withTiming(steps, {
-          duration: 800,
-          easing: Easing.out(Easing.cubic),
-        })
-      );
-
-      console.log(`Animation démarrée: de ${startStepsValue} à ${steps}`);
-      console.log(`Progress bar: de ${currentProgressValue} à ${steps}`);
-
-      // Mettre à jour la valeur précédente pour la prochaine animation
-      setPreviousProgressValue(steps);
-    }
-  }, [steps, dataLoaded, isLoading]);
-
-  // Écouter les changements de la valeur animée et mettre à jour l'état
-  useEffect(() => {
-    // Créer une fonction pour mettre à jour l'état basé sur la valeur animée
-    const updateDisplayedSteps = () => {
-      const valueToDisplay = Math.round(animatedStepsValue.value);
-      setDisplayedSteps(valueToDisplay);
-    };
-
-    // Créer un intervalle pour mettre à jour l'état pendant l'animation
-    const intervalId = setInterval(updateDisplayedSteps, 16); // ~60fps
-
-    // Nettoyer l'intervalle quand le composant est démonté
-    return () => clearInterval(intervalId);
-  }, [animatedStepsValue.value]);
-
-  // Sauvegarder les pas précédents avant un refresh
-  const handleBeforeRefresh = () => {
+  // Préparation avant rafraîchissement des données
+  const handleBeforeRefresh = useCallback(() => {
     setPreviousSteps(steps);
-    setPreviousProgressValue(animatedProgress.value);
-  };
+  }, [steps]);
 
-  const handleLoadData = async () => {
+  // Chargement initial des données
+  const handleLoadData = useCallback(async () => {
     handleBeforeRefresh();
-    await loadHealthData(today);
-    setDataLoaded(true);
-    console.log('tests steps with useSteps: ' + steps);
-    console.log('tests yesterdaySteps with useSteps: ' + yesterdaySteps);
-  };
+    try {
+      setSyncError(null);
+      await loadHealthData(today);
+      setDataLoaded(true);
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      setSyncError(errorMessage);
+      console.error('Error loading initial data:', error);
+    }
+  }, [loadHealthData, today, handleBeforeRefresh]);
 
+  // Gestion du rafraîchissement par pull-to-refresh
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    const oldSteps = steps; // Capturer les pas avant le refresh
     handleBeforeRefresh();
-    await loadHealthData(today);
-    setDataLoaded(true);
 
-    // En mode développement, incrémenter le compteur de refreshes
-    if (devMode) {
-      setRefreshCount((prev) => prev + 1);
+    try {
+      setSyncError(null);
+      await loadHealthData(today);
+      setDataLoaded(true);
+
+      // En mode développement, incrémenter le compteur de refreshes
+      if (devMode) {
+        setRefreshCount((prev) => prev + 1);
+      }
+
+      // Afficher la notification après la synchronisation réussie
+      // On utilise une petite attente pour que les états soient mis à jour
+      setTimeout(() => {
+        const newSteps = devMode ? originalSteps + (refreshCount + 1) * 500 : originalSteps;
+        showSyncNotification(newSteps, oldSteps, false);
+      }, 100);
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      setSyncError(errorMessage);
+      showSyncNotification(0, 0, true);
+      console.error('Error during refresh:', error);
+    } finally {
+      setRefreshing(false);
     }
+  }, [loadHealthData, today, handleBeforeRefresh, devMode, steps, originalSteps, refreshCount]);
 
-    setRefreshing(false);
-    console.log('tests steps with useSteps: ' + originalSteps);
-    console.log('tests yesterdaySteps with useSteps: ' + yesterdaySteps);
-  }, [loadHealthData, today, originalSteps, devMode]);
-
-  // Initialiser les données au démarrage
+  // Charger les données au démarrage
   useEffect(() => {
     if (!dataLoaded && !isLoading) {
       handleLoadData();
     }
-  }, []);
-
-  // Effet d'initialisation unique pour la barre de progression
-  useEffect(() => {
-    if (steps > 0 && animatedProgress.value === 0) {
-      // Initialiser la barre directement à la valeur actuelle sans animation
-      // pour le premier chargement seulement
-      animatedProgress.value = steps;
-      setPreviousProgressValue(steps);
-      console.log(`Initialisation directe de la barre de progression à ${steps}`);
-    }
-  }, [steps]);
+  }, [dataLoaded, isLoading, handleLoadData]);
 
   return (
     <SafeAreaView className="flex-1 bg-black">
@@ -179,62 +128,34 @@ export default function HomeScreen() {
             colors={['#FFFFFF']}
           />
         }>
-        <View className="absolute left-0 right-0 top-0 z-10 items-center py-2">
-          <AppText className="text-sm text-slate-500">Pull down to sync your steps</AppText>
-          <AppText className="text-sm text-slate-500">↓</AppText>
-          <AppText className="mt-20 text-3xl text-white">Today</AppText>
+        {/* <View className="absolute left-0 right-0 top-0 z-10 items-center py-2"> */}
+        <View className="mb-20 items-center justify-center">
+          <View className="mb-20 items-center">
+            <AppText className="text-sm text-slate-500">Pull down to sync your steps</AppText>
+            <AppText className="text-sm text-slate-500">↓</AppText>
+          </View>
+          <AppText className="mb-10 text-3xl text-white">Today</AppText>
+          <AppText className="text-5xl text-white">{displayedSteps}</AppText>
+          {/* <AppText className="text-2xl text-white">&#129406;</AppText> */}
+          <AppText className="text-base text-slate-300">
+            {displayedSteps > 0 ? 'steps' : 'step'}
+          </AppText>
         </View>
 
         {isLoading && !refreshing ? (
           <View className="flex-1 items-center justify-center">
             <ActivityIndicator size="large" color="#FFFFFF" />
-            <Text style={{ color: 'white', marginTop: 10 }}>Chargement des données...</Text>
+            <AppText className="mt-3 text-white">Chargement des données...</AppText>
           </View>
         ) : (
-          <>
-            {/* Contenu principal centré */}
-            <View className="flex-1 items-center justify-center">
-              {/* Affichage des données de pas avec animation */}
-              <View className="items-center">
-                <AppText className="mb-5 text-3xl text-white">{displayedSteps}</AppText>
-              </View>
-              <ProgressBar
-                progress={animatedProgress}
-                maxValue={8000}
-                width="50%"
-                height={12}
-                outerBorderWidth={2}
-                innerBorderWidth={2}
-                outerBorderColor="#ffffff"
-                innerBorderColor="#000000"
-                backgroundColor="#333333"
-                fillColor="#fecdd3"
-              />
-
-              {/* Bouton pour activer/désactiver le mode développement */}
-              <TouchableOpacity
-                className="mt-6 rounded-lg bg-gray-800 p-3"
-                onPress={() => setDevMode(!devMode)}>
-                <AppText className="text-white">
-                  {devMode ? 'Mode Dev: ON (+500 pas/refresh)' : 'Mode Dev: OFF'}
-                </AppText>
-              </TouchableOpacity>
-
-              {/* Bouton de réinitialisation - visible uniquement en mode dev */}
-              {devMode && (
-                <TouchableOpacity
-                  className="mt-3 rounded-lg bg-red-800 p-3"
-                  onPress={resetDevCounter}>
-                  <AppText className="text-white">Reset Dev Counter</AppText>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Texte en bas de l'écran - affiché uniquement quand les données sont chargées */}
-            <View className="w-full items-center pb-10">
-              <AppText className="text-lg text-white">{`Yesterday: ${yesterdaySteps}`}</AppText>
-            </View>
-          </>
+          <StepsDisplay
+            displayedSteps={displayedSteps}
+            animatedProgress={animatedProgress}
+            yesterdaySteps={yesterdaySteps}
+            devMode={devMode}
+            setDevMode={setDevMode}
+            resetDevCounter={resetDevCounter}
+          />
         )}
       </ScrollView>
     </SafeAreaView>
