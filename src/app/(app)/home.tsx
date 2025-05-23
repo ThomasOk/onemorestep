@@ -23,10 +23,8 @@ export default function HomeScreen() {
 
   const steps = devMode ? originalSteps + refreshCount * 500 : originalSteps;
 
-  const { displayedSteps, animatedProgress, flashTrigger, levelInfo } = useStepAnimation(
-    steps,
-    previousSteps
-  );
+  const { displayedSteps, animatedProgress, flashTrigger, levelInfo, isLevelingUp } =
+    useStepAnimation(steps, previousSteps);
 
   const showSyncNotification = (newSteps: number, oldSteps: number, hasError: boolean) => {
     if (hasError) {
@@ -161,9 +159,10 @@ export default function HomeScreen() {
           <StepsDisplay
             displayedSteps={displayedSteps}
             animatedProgress={animatedProgress}
-            flashTrigger={flashTrigger} // Nouveau prop
+            flashTrigger={flashTrigger}
             yesterdaySteps={yesterdaySteps}
             levelInfo={levelInfo}
+            isLevelingUp={isLevelingUp} // Ajouter cette ligne
             devMode={devMode}
             setDevMode={setDevMode}
             resetDevCounter={resetDevCounter}
