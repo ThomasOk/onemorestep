@@ -1,4 +1,3 @@
-// src/features/steps/hooks/use-steps-animation.ts
 import { useEffect, useState } from 'react';
 import {
   useSharedValue,
@@ -6,88 +5,124 @@ import {
   withDelay,
   withSequence,
   Easing,
+  runOnJS,
 } from 'react-native-reanimated';
 import { calculateLevelInfo, hasLeveledUp, LevelInfo } from '../utils/level-utils';
 
 export const useStepAnimation = (currentSteps: number, previousSteps: number = 0) => {
   const [displayedSteps, setDisplayedSteps] = useState(previousSteps);
   const [levelInfo, setLevelInfo] = useState<LevelInfo>(calculateLevelInfo(previousSteps));
+  const [displayedLevel, setDisplayedLevel] = useState(
+    calculateLevelInfo(previousSteps).currentLevel
+  );
+  const [isLevelingUp, setIsLevelingUp] = useState(false);
 
-  // Valeurs animées pour le compteur et la barre de progression
+  // Valeurs animées
   const animatedStepsValue = useSharedValue(previousSteps);
   const animatedProgress = useSharedValue(calculateLevelInfo(previousSteps).progressInCurrentLevel);
 
-  // Animation lorsque les pas changent
+  // Flash trigger qui ne se déclenche QUE pour les passages de niveau
+  const levelUpFlashTrigger = useSharedValue(0);
+
+  const updateDisplayedLevel = (newLevel: number) => {
+    setDisplayedLevel(newLevel);
+    setIsLevelingUp(false);
+  };
+
+  // Fonction pour déclencher le flash de passage de niveau
+  const triggerLevelUpFlash = () => {
+    levelUpFlashTrigger.value = levelUpFlashTrigger.value + 1;
+    console.log('🎉 Level up flash triggered!');
+  };
+
+  const ANIMATION_TIMINGS = {
+    fillToPrevious: 300,
+    pauseAtFull: 0,
+    resetToZero: 200,
+    fillToNew: 500,
+    stepsCounter: 800,
+    delayBeforeStart: 300,
+  };
+
   useEffect(() => {
     if (currentSteps > 0) {
       const currentLevelInfo = calculateLevelInfo(currentSteps);
       const previousLevelInfo = calculateLevelInfo(previousSteps);
       const leveledUp = hasLeveledUp(previousSteps, currentSteps);
 
-      // Mettre à jour les informations de niveau
       setLevelInfo(currentLevelInfo);
 
       if (leveledUp) {
-        // Animation spéciale pour le passage de niveau
-        // 1. Remplir la barre jusqu'à 1000 (fin du niveau précédent)
-        // 2. Réinitialiser la barre à 0
-        // 3. Remplir jusqu'à la nouvelle progression
+        setIsLevelingUp(true);
+        console.log(
+          `🚀 Level up detected: ${previousLevelInfo.currentLevel} → ${currentLevelInfo.currentLevel}`
+        );
+
         animatedProgress.value = withSequence(
-          // Étape 1: Remplir jusqu'à 1000 (fin du niveau)
-          withTiming(1000, {
-            duration: 300,
-            easing: Easing.out(Easing.cubic),
-          }),
-          // Étape 2: Petite pause pour montrer le niveau complet
-          withDelay(150, withTiming(1000, { duration: 0 })),
-          // Étape 3: Réinitialiser à 0 (nouveau niveau)
-          withTiming(0, {
-            duration: 200,
-            easing: Easing.inOut(Easing.cubic),
-          }),
-          // Étape 4: Remplir jusqu'à la nouvelle progression
+          // 1. Remplir jusqu'à la fin du niveau précédent
+          withTiming(
+            1000,
+            {
+              duration: ANIMATION_TIMINGS.fillToPrevious,
+              easing: Easing.out(Easing.cubic),
+            },
+            () => {
+              // Flash UNIQUEMENT au passage de niveau quand on atteint 100%
+              runOnJS(triggerLevelUpFlash)();
+            }
+          ),
+
+          // 2. Pause
+          withDelay(ANIMATION_TIMINGS.pauseAtFull, withTiming(1000, { duration: 0 })),
+
+          // 3. Vider la barre + mettre à jour le niveau
+          withTiming(
+            0,
+            {
+              duration: ANIMATION_TIMINGS.resetToZero,
+              easing: Easing.inOut(Easing.cubic),
+            },
+            () => {
+              runOnJS(updateDisplayedLevel)(currentLevelInfo.currentLevel);
+            }
+          ),
+
+          // 4. Remplir vers la nouvelle progression
           withTiming(currentLevelInfo.progressInCurrentLevel, {
-            duration: 500,
+            duration: ANIMATION_TIMINGS.fillToNew,
             easing: Easing.out(Easing.cubic),
           })
         );
       } else {
-        // Animation normale (pas de changement de niveau)
+        // Animation normale - PAS de flash
+        console.log('📈 Normal progress animation');
         animatedProgress.value = withDelay(
-          300,
+          ANIMATION_TIMINGS.delayBeforeStart,
           withTiming(currentLevelInfo.progressInCurrentLevel, {
-            duration: 500,
+            duration: ANIMATION_TIMINGS.fillToNew,
             easing: Easing.out(Easing.cubic),
           })
         );
       }
 
-      // Animation du compteur de pas (inchangée)
+      // Animation du compteur de pas
       animatedStepsValue.value = withDelay(
-        300,
+        ANIMATION_TIMINGS.delayBeforeStart,
         withTiming(currentSteps, {
-          duration: 800,
+          duration: ANIMATION_TIMINGS.stepsCounter,
           easing: Easing.out(Easing.cubic),
         })
       );
-
-      console.log(`Animation démarrée: de ${previousSteps} à ${currentSteps}`, {
-        leveledUp,
-        previousLevel: previousLevelInfo.currentLevel,
-        currentLevel: currentLevelInfo.currentLevel,
-        progressInLevel: currentLevelInfo.progressInCurrentLevel,
-      });
     }
   }, [currentSteps, previousSteps]);
 
-  // Mise à jour de l'affichage selon la valeur animée
   useEffect(() => {
     const updateDisplayedSteps = () => {
       const valueToDisplay = Math.round(animatedStepsValue.value);
       setDisplayedSteps(valueToDisplay);
     };
 
-    const intervalId = setInterval(updateDisplayedSteps, 16); // ~60fps
+    const intervalId = setInterval(updateDisplayedSteps, 16);
     return () => clearInterval(intervalId);
   }, [animatedStepsValue.value]);
 
@@ -95,6 +130,11 @@ export const useStepAnimation = (currentSteps: number, previousSteps: number = 0
     displayedSteps,
     animatedStepsValue,
     animatedProgress,
-    levelInfo, // Nouvelles informations de niveau
+    flashTrigger: levelUpFlashTrigger, // Renommé pour clarifier
+    levelInfo: {
+      ...levelInfo,
+      currentLevel: displayedLevel,
+    },
+    isLevelingUp,
   };
 };

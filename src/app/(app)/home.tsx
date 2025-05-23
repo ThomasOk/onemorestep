@@ -1,4 +1,3 @@
-// src/app/(app)/home.tsx
 import { View, ActivityIndicator, ScrollView, RefreshControl } from 'react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,7 +23,10 @@ export default function HomeScreen() {
 
   const steps = devMode ? originalSteps + refreshCount * 500 : originalSteps;
 
-  const { displayedSteps, animatedProgress, levelInfo } = useStepAnimation(steps, previousSteps);
+  const { displayedSteps, animatedProgress, flashTrigger, levelInfo } = useStepAnimation(
+    steps,
+    previousSteps
+  );
 
   const showSyncNotification = (newSteps: number, oldSteps: number, hasError: boolean) => {
     if (hasError) {
@@ -159,6 +161,7 @@ export default function HomeScreen() {
           <StepsDisplay
             displayedSteps={displayedSteps}
             animatedProgress={animatedProgress}
+            flashTrigger={flashTrigger} // Nouveau prop
             yesterdaySteps={yesterdaySteps}
             levelInfo={levelInfo}
             devMode={devMode}
